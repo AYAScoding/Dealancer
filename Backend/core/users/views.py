@@ -5,18 +5,24 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from .models import CustomUser
+from drf_spectacular.utils import extend_schema
 
 from .serializers import RegisterSerializer, UserSerializer
+
+from django.utils.http import urlsafe_base64_decode
+from django.utils.encoding import force_str
+from .utils import email_verification_token, send_verification_email
 
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(request=RegisterSerializer)
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        # TODO: send verification email (next step)
+        send_verification_email(user, request)
         return Response(
             {"message": "Account created. Please verify your email."},
             status=status.HTTP_201_CREATED
@@ -65,6 +71,36 @@ class LoginView(APIView):
                 "refresh": str(refresh),
             }
         }, status=status.HTTP_200_OK)
+
+class VerifyEmailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, uid, token):
+        # Decode the user pk
+        try:
+            user_pk = force_str(urlsafe_base64_decode(uid))
+            user = CustomUser.objects.get(pk=user_pk)
+        except (CustomUser.DoesNotExist, ValueError, TypeError):
+            return Response(
+                {"error": "Invalid verification link."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check the token is valid for this user
+        if not email_verification_token.check_token(user, token):
+            return Response(
+                {"error": "Verification link is invalid or has already been used."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # All good — verify the user
+        user.is_verified = True
+        user.save()
+
+        return Response(
+            {"message": "Email verified successfully. You can now log in."},
+            status=status.HTTP_200_OK
+        )
 
 
 class LogoutView(APIView):
