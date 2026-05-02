@@ -30,3 +30,13 @@ class CustomUserAdmin(UserAdmin):
         if obj:  # editing an existing user
             return ["created_at", "updated_at"]
         return []
+    
+from .models import (
+    FreelancerProfile, ClientProfile,
+    Skill, SkillCategory, FreelancerSkill
+)
+
+admin.site.register(FreelancerProfile)
+admin.site.register(ClientProfile)
+admin.site.register(Skill)
+admin.site.register(SkillCategory)

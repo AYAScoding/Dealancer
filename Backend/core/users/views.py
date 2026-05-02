@@ -128,3 +128,31 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+    
+
+from .models import FreelancerProfile, ClientProfile
+from .serializers import FreelancerProfileSerializer, ClientProfileSerializer
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework import generics, status
+
+
+class ProfileView(generics.RetrieveUpdateAPIView):
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["get", "patch"]  # block PUT
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # support photo upload
+
+    def get_object(self):
+        user = self.request.user
+        if user.role == "FREELANCER":
+            return FreelancerProfile.objects.prefetch_related("skills").get(user=user)
+        return ClientProfile.objects.get(user=user)
+
+    def get_serializer_class(self):
+        user = self.request.user
+        if user.role == "FREELANCER":
+            return FreelancerProfileSerializer
+        return ClientProfileSerializer
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs["partial"] = True
+        return self.update(request, *args, **kwargs)
