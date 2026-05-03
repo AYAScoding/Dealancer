@@ -98,4 +98,21 @@ class FreelancerProfile(models.Model):
         return f"Freelancer: {self.user}"
 
 
+class FreelancerSkill(models.Model):
+    freelancer = models.ForeignKey(
+        FreelancerProfile,
+        on_delete=models.CASCADE,
+        related_name="freelancer_skills"
+    )
+    skill = models.ForeignKey(
+        Skill,
+        on_delete=models.CASCADE,
+        related_name="freelancer_skills"
+    )
 
+    class Meta:
+        unique_together = ("freelancer", "skill")
+
+    def __str__(self):
+        return f"{self.freelancer.user} — {self.skill.name}"
+    
