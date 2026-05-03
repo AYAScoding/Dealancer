@@ -116,3 +116,18 @@ class FreelancerSkill(models.Model):
     def __str__(self):
         return f"{self.freelancer.user} — {self.skill.name}"
     
+class ClientProfile(models.Model):
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="client_profile"
+    )
+    company_name = models.CharField(max_length=100, blank=True, default="")
+    industry = models.CharField(max_length=100, blank=True, default="")
+    website = models.URLField(blank=True, default="")
+    photo = models.ImageField(upload_to="client_photos/", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Client: {self.user}"
