@@ -25,7 +25,16 @@ SECRET_KEY = 'django-insecure-ja#7lo2q$jm-x)1roqv(i)40u=ar2oyjzx0env@beutb7lth#%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+
+# CORS — allow the React dev server to talk to Django
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+]
+CORS_ALLOW_CREDENTIALS = True
 
 
 # Application definition
@@ -37,6 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',                      # CORS: must be before rest_framework
     'rest_framework',
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
@@ -87,6 +97,7 @@ DEFAULT_FROM_EMAIL = "noreply@dealancer.com"
 # EMAIL_HOST_PASSWORD = "your_app_password"
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',    # ← MUST be first
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

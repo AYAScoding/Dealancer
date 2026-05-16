@@ -1,0 +1,71 @@
+# --- Backend (Django) ---
+__pycache__/
+*.py[cod]
+*$py.class
+Backend/env/
+Backend/core/db.sqlite3
+Backend/core/media/
+Backend/core/static/
+.env
+
+# --- Frontend (React/Vite) ---
+Frontend/node_modules/
+Frontend/dist/
+Frontend/dist-ssr/
+Frontend/.env*.local
+Frontend/*.local
+
+# --- General System/IDE ---
+.vscode/
+.idea/
+.DS_Store
+thumbs.db
+desktop.ini
+*.log
+
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# TypeScript/JavaScript
+dist/
+dist-ssr/
+*.tsbuildinfo
+.eslintcache
+
+# Env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local
+
+# Tech-specific
+.next/
+out/
+build/
+
+# Editor/System files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+thumbs.db
+desktop.ini
+
