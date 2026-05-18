@@ -37,6 +37,31 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 
+# settings.py
+import environ
+
+env = environ.Env()
+environ.Env.read_env(BASE_DIR / ".env")  # reads your .env file
+
+# --- Email Configuration ---
+
+# REMOVE or comment out this line if you have it:
+# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+
+# --- Frontend URL (used in password reset emails) ---
+FRONTEND_URL = env("FRONTEND_URL")
+
+# settings.py
+PASSWORD_RESET_TIMEOUT = 86400  # 24 hours 
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -83,18 +108,7 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
 }
 
-# Development — prints email content to the terminal
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-EMAIL_HOST = "localhost"
-DEFAULT_FROM_EMAIL = "noreply@dealancer.com"
 
-# You'll replace this in production with real SMTP:
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = "smtp.gmail.com"
-# EMAIL_PORT = 587
-# EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = "your@gmail.com"
-# EMAIL_HOST_PASSWORD = "your_app_password"
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',    # ← MUST be first
