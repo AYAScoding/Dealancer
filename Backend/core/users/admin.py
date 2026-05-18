@@ -16,7 +16,7 @@ class CustomUserAdmin(UserAdmin):
         ("Personal Info", {"fields": ("first_name", "last_name")}),
         ("Role & Status", {"fields": ("role", "is_verified")}),
         ("Permissions", {"fields": ("is_staff", "is_superuser", "groups", "user_permissions")}),
-        ("Important Dates", {"fields": ("last_login", "created_at", "updated_at")}),
+        ("Important Dates", {"fields": ("last_login", "date_joined")}),
     )
 
     add_fieldsets = (
@@ -28,7 +28,7 @@ class CustomUserAdmin(UserAdmin):
 
     def get_readonly_fields(self, request, obj=None):
         if obj:  # editing an existing user
-            return ["created_at", "updated_at"]
+            return ["date_joined"]
         return []
     
 from .models import (
