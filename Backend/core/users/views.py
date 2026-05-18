@@ -88,6 +88,15 @@ class VerifyEmailView(APIView):
 
         # Check the token is valid for this user
         if not email_verification_token.check_token(user, token):
+            # If the link is invalid but the user is ALREADY verified,
+            # don't show an error. It likely means they clicked it twice
+            # or the request was re-transmitted.
+            if user.is_verified:
+                return Response(
+                    {"message": "Email is already verified. You can log in."},
+                    status=status.HTTP_200_OK
+                )
+            
             return Response(
                 {"error": "Verification link is invalid or has already been used."},
                 status=status.HTTP_400_BAD_REQUEST

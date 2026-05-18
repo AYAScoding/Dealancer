@@ -20,8 +20,9 @@ def send_verification_email(user, request):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = email_verification_token.make_token(user)
 
-    # Build the verification link
-    verification_link = f"http://127.0.0.1:8000/api/auth/verify-email/{uid}/{token}/"
+    # Build the verification link pointing to the React frontend
+    # settings.FRONTEND_URL should be e.g. "http://localhost:5174"
+    verification_link = f"{settings.FRONTEND_URL}/verify-email/{uid}/{token}"
 
     send_mail(
         subject="Verify your Dealancer account",
