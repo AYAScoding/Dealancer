@@ -24,7 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
     """Used to return user info after login / in protected endpoints"""
     class Meta:
         model = CustomUser
-        fields = ["id", "first_name", "last_name", "email", "role", "is_verified"]
+        fields = ["id", "first_name", "last_name", "email", "role", "is_verified", "is_profile_complete"]
         
 
 from .models import (

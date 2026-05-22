@@ -10,16 +10,18 @@ from .models import Job, Bid, Category
 from .serializers import JobListSerializer, JobDetailSerializer, BidSerializer, CategorySerializer
 from .permissions import IsClientOrReadOnly, IsJobOwner, IsFreelancerBidOwner
 from .filters import JobFilter
+from users.permissions import IsProfileComplete
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsProfileComplete]
 
 
 class JobViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsClientOrReadOnly, IsJobOwner]
+    permission_classes = [IsProfileComplete, IsClientOrReadOnly, IsJobOwner]
+
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = JobFilter
     search_fields = ["title", "description"]         # ?search=
@@ -62,8 +64,9 @@ class BidViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == "create":
             # Only freelancers can create bids
-            return [permissions.IsAuthenticated()]
-        return [permissions.IsAuthenticated(), IsFreelancerBidOwner()]
+            return [permissions.IsAuthenticated(), IsProfileComplete()]
+        return [permissions.IsAuthenticated(), IsFreelancerBidOwner(), IsProfileComplete()]
+
 
     def get_queryset(self):
         return Bid.objects.filter(freelancer=self.request.user) \

@@ -2,7 +2,8 @@ import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
-import { Plus, Briefcase, ChevronRight, LogOut } from "lucide-react";
+import { Plus, Briefcase, ChevronRight, LogOut, User } from "lucide-react";
+
 
 export default function ClientDashboard() {
   const { user, logout } = useContext(AuthContext);
@@ -35,7 +36,11 @@ export default function ClientDashboard() {
           <Link to="/client/jobs/new" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-colors">
             <Plus className="w-5 h-5"/> Post a Job
           </Link>
+          <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-colors">
+            <User className="w-5 h-5"/> My Profile
+          </Link>
         </nav>
+
         <div className="p-4">
           <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-slate-300 hover:text-white hover:bg-red-500/20 rounded-xl transition-colors">
             <LogOut className="w-4 h-4"/> Sign Out

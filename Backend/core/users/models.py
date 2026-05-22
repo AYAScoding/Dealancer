@@ -38,8 +38,23 @@ class CustomUser(AbstractUser):
     role = models.CharField(max_length=20, choices=Role.choices)
     is_verified = models.BooleanField(default=False)
 
+    @property
+    def is_profile_complete(self):
+        if self.role == self.Role.FREELANCER:
+            if hasattr(self, "freelancer_profile"):
+                profile = self.freelancer_profile
+                return bool(profile.bio and profile.bio.strip()) and profile.hourly_rate is not None and profile.hourly_rate > 0 and profile.skills.exists()
+            return False
+        elif self.role == self.Role.CLIENT:
+            if hasattr(self, "client_profile"):
+                profile = self.client_profile
+                return bool(profile.company_name and profile.company_name.strip()) and bool(profile.industry and profile.industry.strip())
+            return False
+        return False
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
 class SkillCategory(models.Model):
     name = models.CharField(max_length=100, unique=True)
 

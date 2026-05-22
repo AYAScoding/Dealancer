@@ -13,9 +13,12 @@ import ResetPassword from "./pages/ResetPassword";
 import ClientDashboard from "./pages/ClientDashboard";
 import FreelancerDashboard from "./pages/FreelancerDashboard";
 import JobMarketplace from "./pages/JobMarketplace";
+import JobDetail from "./pages/JobDetail";
 import JobForm from "./pages/JobForm";
+import Profile from "./pages/Profile";
 
 function App() {
+
   return (
     <Router>
       <AuthProvider>
@@ -38,7 +41,14 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["FREELANCER"]} />}>
             <Route path="/freelancer/dashboard" element={<FreelancerDashboard />} />
             <Route path="/jobs" element={<JobMarketplace />} />
+            <Route path="/jobs/:id" element={<JobDetail />} />
           </Route>
+
+          {/* Shared Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/profile" element={<Profile />} />
+          </Route>
+
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
