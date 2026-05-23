@@ -42,8 +42,12 @@ class Job(models.Model):
     # Core fields
     title = models.CharField(max_length=255)
     description = models.TextField()
-    category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, null=True, related_name="jobs"
+    from users.models import SkillCategory
+
+    categories = models.ManyToManyField(
+        SkillCategory,
+        blank=True,
+        related_name="jobs",
     )
     skills_required = models.ManyToManyField(
         "users.Skill",  # Reuse the Skill model from your existing skill system

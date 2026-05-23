@@ -153,8 +153,11 @@ class ProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         user = self.request.user
         if user.role == "FREELANCER":
-            return FreelancerProfile.objects.prefetch_related("skills").get(user=user)
-        return ClientProfile.objects.get(user=user)
+            profile, created = FreelancerProfile.objects.prefetch_related("skills").get_or_create(user=user)
+            return profile
+        profile, created = ClientProfile.objects.get_or_create(user=user)
+        return profile
+
 
     def get_serializer_class(self):
         user = self.request.user

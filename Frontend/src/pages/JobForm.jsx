@@ -16,7 +16,7 @@ export default function JobForm() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    category_id: "",
+    category_ids: [],
     budget_type: "FIXED",
     budget_min: "",
     budget_max: "",
@@ -49,15 +49,63 @@ export default function JobForm() {
     fetchSelectData();
   }, []);
 
-  const handleSkillToggle = (skillId) => {
-    setFormData((prev) => {
-      const currentSkills = prev.skills_required;
-      if (currentSkills.includes(skillId)) {
-        return { ...prev, skills_required: currentSkills.filter((id) => id !== skillId) };
-      } else {
-        return { ...prev, skills_required: [...currentSkills, skillId] };
+  const handleCategoryToggle = (catId) => {
+    const currentCats = formData.category_ids;
+    if (currentCats.includes(catId)) {
+      // Remove category and clear all skills associated with it
+      const updatedCats = currentCats.filter((id) => id !== catId);
+      const skillsToKeep = formData.skills_required.filter(skillId => {
+        const skill = skills.find(s => s.id === skillId);
+        return skill && updatedCats.includes(skill.category?.id);
+      });
+      setFormData((prev) => ({
+        ...prev,
+        category_ids: updatedCats,
+        skills_required: skillsToKeep
+      }));
+      setError("");
+    } else {
+      if (currentCats.length >= 2) {
+        setError("You can select a maximum of 2 job categories.");
+        return;
       }
-    });
+      setError("");
+      setFormData((prev) => ({
+        ...prev,
+        category_ids: [...currentCats, catId]
+      }));
+    }
+  };
+
+  const getSkillsCountForCategory = (catId) => {
+    return formData.skills_required.filter(skillId => {
+      const skill = skills.find(s => s.id === skillId);
+      return skill && skill.category?.id === catId;
+    }).length;
+  };
+
+  const handleSkillToggle = (skillId) => {
+    const isSelected = formData.skills_required.includes(skillId);
+    if (isSelected) {
+      setFormData((prev) => ({
+        ...prev,
+        skills_required: prev.skills_required.filter((id) => id !== skillId)
+      }));
+      setError("");
+    } else {
+      const skill = skills.find((s) => s.id === skillId);
+      if (!skill || !skill.category?.id) return;
+      const count = getSkillsCountForCategory(skill.category.id);
+      if (count >= 5) {
+        setError(`You can choose a maximum of 5 skills for the '${skill.category.name}' category.`);
+        return;
+      }
+      setError("");
+      setFormData((prev) => ({
+        ...prev,
+        skills_required: [...prev.skills_required, skillId]
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -65,11 +113,22 @@ export default function JobForm() {
     setLoading(true);
     setError("");
 
+    if (formData.category_ids.length === 0) {
+      setError("Please select at least one job category.");
+      setLoading(false);
+      return;
+    }
+
     try {
       await api.post("/jobs/", {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        category_ids: formData.category_ids,
+        skill_ids: formData.skills_required,
+        budget_type: formData.budget_type,
         budget_min: parseFloat(formData.budget_min),
-        budget_max: parseFloat(formData.budget_max)
+        budget_max: parseFloat(formData.budget_max),
+        deadline: formData.deadline || null
       });
       navigate("/client/dashboard");
     } catch (err) {
@@ -134,18 +193,36 @@ export default function JobForm() {
                 </div>
 
                 <div className="col-span-1 md:col-span-2">
-                   <label className="block text-sm font-semibold text-slate-900 mb-2">Category</label>
-                   <select 
-                     required
-                     value={formData.category_id}
-                     onChange={(e) => setFormData({...formData, category_id: e.target.value})}
-                     className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-primary focus:border-primary shadow-sm outline-none bg-white transition-shadow"
-                   >
-                     <option value="" disabled>Select a category...</option>
-                     {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                     ))}
-                   </select>
+                   <label className="block text-sm font-bold text-slate-900 mb-2">
+                     Job Categories <span className="text-red-500">*</span>
+                     <span className="text-slate-400 font-normal text-xs ml-2">
+                       (Select up to 2 categories: {formData.category_ids.length}/2)
+                     </span>
+                   </label>
+                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                     {categories.map((cat) => {
+                       const isSelected = formData.category_ids.includes(cat.id);
+                       const isLimitReached = formData.category_ids.length >= 2 && !isSelected;
+                       return (
+                         <button
+                           key={cat.id}
+                           type="button"
+                           disabled={isLimitReached}
+                           onClick={() => handleCategoryToggle(cat.id)}
+                           className={`px-4 py-3 rounded-xl border text-xs font-semibold transition-all duration-200 flex items-center justify-between group cursor-pointer ${
+                             isSelected
+                               ? "bg-primary text-white border-primary shadow-sm ring-2 ring-primary/20"
+                               : isLimitReached
+                               ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed"
+                               : "bg-white text-slate-700 border-slate-200 hover:border-primary/50 hover:bg-slate-50/50"
+                           }`}
+                         >
+                           <span>{cat.name}</span>
+                           {isSelected && <span className="w-2 h-2 rounded-full bg-white shrink-0 ml-1.5" />}
+                         </button>
+                       );
+                     })}
+                   </div>
                 </div>
               </div>
 
@@ -162,30 +239,63 @@ export default function JobForm() {
               </div>
 
               {/* Skills (Checkboxes) */}
-              {skills.length > 0 && (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-900 mb-3">Required Skills</label>
-                  <div className="flex flex-wrap gap-3">
-                    {skills.map(skill => {
-                      const isSelected = formData.skills_required.includes(skill.id);
-                      return (
-                        <button
-                          key={skill.id}
-                          type="button"
-                          onClick={() => handleSkillToggle(skill.id)}
-                          className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
-                            isSelected 
-                              ? "bg-primary text-white border-primary shadow-md" 
-                              : "bg-slate-50 text-slate-700 border-slate-200 hover:border-primary"
-                          }`}
-                        >
-                          {skill.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              <div className="space-y-4">
+                 <label className="block text-sm font-bold text-slate-900">Required Skills <span className="text-red-500">*</span></label>
+                 
+                 {formData.category_ids.length === 0 ? (
+                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center text-slate-500 text-xs font-medium">
+                     Select at least one category above to choose matching required skills.
+                   </div>
+                 ) : (
+                   <div className="space-y-6">
+                     {/* Category-based Skill Lists with Counters */}
+                     {formData.category_ids.map((catId) => {
+                       const category = categories.find(c => c.id === catId);
+                       if (!category) return null;
+                       const catSkills = skills.filter(s => s.category?.id === catId);
+                       const count = getSkillsCountForCategory(catId);
+                       
+                       return (
+                         <div key={catId} className="bg-slate-50/50 border border-slate-200 p-5 rounded-2xl space-y-3 animate-in fade-in">
+                           <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                             <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                               <span className="w-2 h-2 rounded-full bg-primary" />
+                               {category.name} Skills
+                             </h4>
+                             <span className={`text-xs font-bold ${count >= 5 ? "text-amber-600" : "text-slate-500"}`}>
+                               Selected: {count}/5
+                             </span>
+                           </div>
+                           
+                           <div className="flex flex-wrap gap-2.5">
+                             {catSkills.map(skill => {
+                               const isSelected = formData.skills_required.includes(skill.id);
+                               const isCatLimit = count >= 5 && !isSelected;
+                               return (
+                                 <button
+                                   key={skill.id}
+                                   type="button"
+                                   disabled={isCatLimit}
+                                   onClick={() => handleSkillToggle(skill.id)}
+                                   className={`px-3.5 py-2 rounded-full text-xs font-medium border transition-all cursor-pointer ${
+                                     isSelected 
+                                       ? "bg-primary text-white border-primary shadow-sm" 
+                                       : isCatLimit
+                                       ? "bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed"
+                                       : "bg-white text-slate-700 border-slate-200 hover:border-primary hover:bg-slate-50/30"
+                                   }`}
+                                 >
+                                   {skill.name}
+                                 </button>
+                               );
+                             })}
+                           </div>
+                         </div>
+                       );
+                     })}
+                   </div>
+                 )}
+               </div>
 
               {/* Budget & Timeline */}
               <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-6">

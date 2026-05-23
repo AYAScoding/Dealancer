@@ -28,7 +28,7 @@ export default function JobMarketplace() {
   const filteredJobs = jobs.filter(
     (job) =>
       job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (job.category && job.category.name.toLowerCase().includes(searchTerm.toLowerCase()))
+      (job.categories && job.categories.some(cat => cat.name.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   return (
@@ -87,10 +87,14 @@ export default function JobMarketplace() {
                     <h2 className="text-2xl font-bold text-slate-900 group-hover:text-primary transition-colors">
                       {job.title}
                     </h2>
-                    {job.category && (
-                      <span className="inline-block mt-3 px-3 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg font-semibold uppercase tracking-wider">
-                        {job.category.name}
-                      </span>
+                    {job.categories && job.categories.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {job.categories.map((cat) => (
+                          <span key={cat.id} className="inline-block px-3 py-1 bg-slate-100 text-slate-600 text-xs rounded-lg font-semibold uppercase tracking-wider">
+                            {cat.name}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
                   <div className="text-right shrink-0">

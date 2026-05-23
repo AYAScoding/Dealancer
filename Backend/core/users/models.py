@@ -97,6 +97,11 @@ class FreelancerProfile(models.Model):
         blank=True,
         related_name="freelancers"
     )
+    categories = models.ManyToManyField(
+        SkillCategory,
+        blank=True,
+        related_name="freelancers"
+    )
     portfolio_url = models.URLField(blank=True, default="")
     photo = models.ImageField(upload_to="freelancer_photos/", null=True, blank=True)
     availability = models.BooleanField(default=True)

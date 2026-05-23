@@ -104,11 +104,11 @@ export default function JobDetail() {
               <div>
                 <h1 className="text-3xl font-extrabold text-slate-900 mb-3">{job.title}</h1>
                 <div className="flex flex-wrap gap-3">
-                  {job.category && (
-                    <span className="inline-block px-3 py-1 bg-primary/10 text-primary-dark text-xs font-bold rounded-lg uppercase">
-                      {job.category.name}
+                  {job.categories && job.categories.map((cat) => (
+                    <span key={cat.id} className="inline-block px-3 py-1 bg-primary/10 text-primary-dark text-xs font-bold rounded-lg uppercase">
+                      {cat.name}
                     </span>
-                  )}
+                  ))}
                   <span className="inline-block px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-lg uppercase border border-slate-200">
                     {job.budget_type === "HOURLY" ? "Hourly Rate" : "Fixed Price"}
                   </span>
@@ -139,9 +139,9 @@ export default function JobDetail() {
              <div>
                 <h3 className="text-sm font-bold text-slate-900 mb-3 uppercase tracking-wider">Required Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                   {job.skills_required.map(skillId => (
-                     <span key={skillId} className="px-3 py-1 bg-slate-50 border border-slate-200 text-slate-700 rounded-full text-sm font-medium">
-                       Skill ID: {skillId}
+                   {job.skills_required.map(skill => (
+                     <span key={skill.id} className="px-3 py-1 bg-slate-50 border border-slate-200 text-slate-700 rounded-full text-sm font-medium">
+                       {skill.name} <span className="text-[10px] text-slate-400 font-normal">({skill.category?.name})</span>
                      </span>
                    ))}
                 </div>

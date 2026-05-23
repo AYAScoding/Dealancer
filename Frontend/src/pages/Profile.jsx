@@ -37,6 +37,7 @@ export default function Profile() {
   const [portfolioUrl, setPortfolioUrl] = useState("");
   const [availability, setAvailability] = useState(true);
   const [selectedSkills, setSelectedSkills] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
 
   // Client specific form states
   const [companyName, setCompanyName] = useState("");
@@ -47,8 +48,9 @@ export default function Profile() {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
 
-  // Skills loading & searching states
+  // Skills & Categories loading & searching states
   const [allSkills, setAllSkills] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
   const [skillSearch, setSkillSearch] = useState("");
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
 
@@ -65,6 +67,7 @@ export default function Profile() {
           setPortfolioUrl(res.data.portfolio_url || "");
           setAvailability(res.data.availability !== false);
           setSelectedSkills(res.data.skills || []);
+          setSelectedCategories(res.data.categories || []);
         } else {
           setCompanyName(res.data.company_name || "");
           setIndustry(res.data.industry || "");
@@ -75,10 +78,14 @@ export default function Profile() {
           setPhotoPreview(res.data.photo);
         }
 
-        // Fetch all available skills for searchable selector
+        // Fetch all available skills and categories for searchable selectors
         if (user?.role === "FREELANCER") {
-          const skillsRes = await api.get("/skills/");
-          setAllSkills(skillsRes.data);
+          const [skillsRes, catsRes] = await Promise.all([
+            api.get("/skills/"),
+            api.get("/categories/")
+          ]);
+          setAllSkills(skillsRes.data.results || skillsRes.data);
+          setAllCategories(catsRes.data.results || catsRes.data);
         }
       } catch (e) {
         console.error("Failed to load profile", e);
@@ -101,9 +108,40 @@ export default function Profile() {
     }
   };
 
+  const toggleCategory = (category) => {
+    const isSelected = selectedCategories.some(c => c.id === category.id);
+    if (isSelected) {
+      // Removing category: dynamically clear any selected skills belonging to this category
+      setSelectedCategories(selectedCategories.filter(c => c.id !== category.id));
+      setSelectedSkills(selectedSkills.filter(s => s.category?.id !== category.id));
+      setErrorMsg("");
+    } else {
+      if (selectedCategories.length >= 3) {
+        setErrorMsg("You can select a maximum of 3 distinct skill categories.");
+        return;
+      }
+      setErrorMsg("");
+      setSelectedCategories([...selectedCategories, category]);
+    }
+  };
+
+  const getSkillsCountForCategory = (categoryId) => {
+    return selectedSkills.filter(s => s.category?.id === categoryId).length;
+  };
+
   const addSkill = (skill) => {
+    const catId = skill.category?.id;
+    if (!catId) return;
+
+    const count = getSkillsCountForCategory(catId);
+    if (count >= 5) {
+      setErrorMsg(`You can choose a maximum of 5 skills for the '${skill.category.name}' category.`);
+      return;
+    }
+
     if (!selectedSkills.find(s => s.id === skill.id)) {
       setSelectedSkills([...selectedSkills, skill]);
+      setErrorMsg("");
     }
     setSkillSearch("");
     setShowSkillDropdown(false);
@@ -128,6 +166,11 @@ export default function Profile() {
       }
       if (!hourlyRate || parseFloat(hourlyRate) <= 0) {
         setErrorMsg("Please specify a valid hourly rate (greater than 0).");
+        setSaving(false);
+        return;
+      }
+      if (selectedCategories.length === 0) {
+        setErrorMsg("Please select at least one expertise category.");
         setSaving(false);
         return;
       }
@@ -159,6 +202,9 @@ export default function Profile() {
         formData.append("availability", availability);
         selectedSkills.forEach((skill) => {
           formData.append("skill_ids", skill.id);
+        });
+        selectedCategories.forEach((cat) => {
+          formData.append("category_ids", cat.id);
         });
       } else {
         formData.append("company_name", companyName);
@@ -199,7 +245,11 @@ export default function Profile() {
     }
   };
 
-  const filteredSkills = allSkills.filter(skill =>
+  const availableSkills = allSkills.filter(skill =>
+    selectedCategories.some(cat => cat.id === skill.category?.id)
+  );
+
+  const filteredSkills = availableSkills.filter(skill =>
     skill.name.toLowerCase().includes(skillSearch.toLowerCase()) &&
     !selectedSkills.some(s => s.id === skill.id)
   );
@@ -406,72 +456,150 @@ export default function Profile() {
                   </div>
                 </div>
 
+                {/* CATEGORIES SELECTION (New Feature) */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                    Expertise Categories <span className="text-red-500">*</span>
+                    <span className="text-slate-400 font-normal text-xs ml-2">
+                      (Select up to 3 categories: {selectedCategories.length}/3)
+                    </span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {allCategories.map((cat) => {
+                      const isSelected = selectedCategories.some(c => c.id === cat.id);
+                      const isLimitReached = selectedCategories.length >= 3 && !isSelected;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          disabled={isLimitReached}
+                          onClick={() => toggleCategory(cat)}
+                          className={`px-4 py-3 rounded-xl border text-xs font-semibold transition-all duration-200 flex items-center justify-between group cursor-pointer ${
+                            isSelected
+                              ? "bg-primary text-white border-primary shadow-sm ring-2 ring-primary/20"
+                              : isLimitReached
+                              ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed"
+                              : "bg-white text-slate-700 border-slate-200 hover:border-primary/50 hover:bg-slate-50/50"
+                          }`}
+                        >
+                          <span>{cat.name}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 shrink-0 ml-1.5" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* SKILLS MULTI-SELECT SEARCH tags */}
                 <div className="relative">
                   <label className="block text-sm font-bold text-slate-700 mb-2">
                     Professional Skills <span className="text-red-500">*</span>
                   </label>
-                  <div className="w-full min-h-[50px] rounded-xl border border-slate-200 p-2 flex flex-wrap gap-2 items-center bg-white">
-                    {selectedSkills.map((skill) => (
-                      <span
-                        key={skill.id}
-                        className="bg-slate-100 text-slate-800 text-xs px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5 border border-slate-200/50"
-                      >
-                        {skill.name}
-                        <button
-                          type="button"
-                          onClick={() => removeSkill(skill.id)}
-                          className="hover:bg-slate-200 rounded-full p-0.5 transition-colors text-slate-500 hover:text-slate-800"
-                        >
-                          <X size={12} />
-                        </button>
-                      </span>
-                    ))}
-                    <input
-                      type="text"
-                      value={skillSearch}
-                      onChange={(e) => {
-                        setSkillSearch(e.target.value);
-                        setShowSkillDropdown(true);
-                      }}
-                      onFocus={() => setShowSkillDropdown(true)}
-                      placeholder={selectedSkills.length === 0 ? "Search and add skills (e.g. Django, React)..." : "Add more..."}
-                      className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm px-2 text-slate-900 placeholder-slate-400"
-                    />
-                  </div>
+                  
+                  {selectedCategories.length === 0 ? (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center text-slate-500 text-xs font-medium">
+                      Select at least one expertise category above to unlock skill search.
+                    </div>
+                  ) : (
+                    <>
+                      {/* Skill limits per category display */}
+                      <div className="flex flex-wrap gap-x-4 gap-y-2 mb-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        {selectedCategories.map((cat) => {
+                          const count = getSkillsCountForCategory(cat.id);
+                          return (
+                            <div key={cat.id} className="text-xs font-medium flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                              <span className="text-slate-600">{cat.name}:</span>
+                              <span className={`font-bold ${count >= 5 ? "text-amber-600" : "text-slate-900"}`}>
+                                {count}/5 selected
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
 
-                  {/* Dropdown search container */}
-                  {showSkillDropdown && skillSearch.trim() && (
-                    <div className="absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-lg max-h-60 overflow-y-auto divide-y divide-slate-50">
-                      {filteredSkills.length > 0 ? (
-                        filteredSkills.map((skill) => (
-                          <button
-                            type="button"
+                      <div className="w-full min-h-[50px] rounded-xl border border-slate-200 p-2 flex flex-wrap gap-2 items-center bg-white">
+                        {selectedSkills.map((skill) => (
+                          <span
                             key={skill.id}
-                            onClick={() => addSkill(skill)}
-                            className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm font-medium text-slate-800 flex items-center justify-between"
+                            className="bg-slate-100 text-slate-800 text-xs px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5 border border-slate-200/50 shadow-sm animate-in fade-in"
                           >
-                            {skill.name}
-                            <Plus size={14} className="text-slate-400" />
-                          </button>
-                        ))
-                      ) : (
-                        <div className="p-4 text-xs text-slate-400 text-center font-medium">
-                          No matching skills found.
+                            <span className="text-slate-900">{skill.name}</span>
+                            <span className="text-[10px] text-slate-400 font-normal">({skill.category?.name})</span>
+                            <button
+                              type="button"
+                              onClick={() => removeSkill(skill.id)}
+                              className="hover:bg-slate-200 rounded-full p-0.5 transition-colors text-slate-500 hover:text-slate-800 cursor-pointer"
+                            >
+                              <X size={12} />
+                            </button>
+                          </span>
+                        ))}
+                        <input
+                          type="text"
+                          value={skillSearch}
+                          onChange={(e) => {
+                            setSkillSearch(e.target.value);
+                            setShowSkillDropdown(true);
+                          }}
+                          onFocus={() => setShowSkillDropdown(true)}
+                          placeholder="Search and add skills..."
+                          className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm px-2 text-slate-900 placeholder-slate-400"
+                        />
+                      </div>
+
+                      {/* Dropdown search container */}
+                      {showSkillDropdown && skillSearch.trim() && (
+                        <div className="absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-lg max-h-60 overflow-y-auto divide-y divide-slate-50">
+                          {filteredSkills.length > 0 ? (
+                            filteredSkills.map((skill) => {
+                              const catId = skill.category?.id;
+                              const isCatLimit = getSkillsCountForCategory(catId) >= 5;
+                              return (
+                                <button
+                                  type="button"
+                                  disabled={isCatLimit}
+                                  key={skill.id}
+                                  onClick={() => addSkill(skill)}
+                                  className={`w-full text-left px-4 py-3 hover:bg-slate-50 text-sm font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                                    isCatLimit
+                                      ? "text-slate-300 bg-slate-50/30 cursor-not-allowed"
+                                      : "text-slate-800"
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span>{skill.name}</span>
+                                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-normal">
+                                      {skill.category?.name}
+                                    </span>
+                                  </div>
+                                  {isCatLimit ? (
+                                    <span className="text-xs text-amber-600 font-semibold">Limit (5/5)</span>
+                                  ) : (
+                                    <Plus size={14} className="text-slate-400" />
+                                  )}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="p-4 text-xs text-slate-400 text-center font-medium">
+                              No matching skills found.
+                            </div>
+                          )}
                         </div>
                       )}
-                    </div>
-                  )}
 
-                  {/* Backdrop click closer */}
-                  {showSkillDropdown && (
-                    <div
-                      className="fixed inset-0 z-[5]"
-                      onClick={() => setShowSkillDropdown(false)}
-                    />
+                      {/* Backdrop click closer */}
+                      {showSkillDropdown && (
+                        <div
+                          className="fixed inset-0 z-[5]"
+                          onClick={() => setShowSkillDropdown(false)}
+                        />
+                      )}
+                    </>
                   )}
                   <p className="text-xs text-slate-500 mt-2">
-                    Enter keywords above and choose skills matching your portfolio. Select at least 1 skill to unlock the app.
+                    Enter keywords above and choose skills matching your chosen categories.
                   </p>
                 </div>
 

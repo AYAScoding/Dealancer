@@ -6,7 +6,8 @@ from django.db.models import Count
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from .models import Job, Bid, Category
+from .models import Job, Bid
+from users.models import SkillCategory
 from .serializers import JobListSerializer, JobDetailSerializer, BidSerializer, CategorySerializer
 from .permissions import IsClientOrReadOnly, IsJobOwner, IsFreelancerBidOwner
 from .filters import JobFilter
@@ -14,7 +15,7 @@ from users.permissions import IsProfileComplete
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Category.objects.all()
+    queryset = SkillCategory.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticated, IsProfileComplete]
 
@@ -29,8 +30,8 @@ class JobViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         # Annotate bid_count once here — used by list serializer
-        return Job.objects.select_related("client", "category") \
-                          .prefetch_related("skills_required") \
+        return Job.objects.select_related("client") \
+                          .prefetch_related("categories", "skills_required") \
                           .annotate(bid_count=Count("bids"))
 
     def get_serializer_class(self):

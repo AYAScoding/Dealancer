@@ -9,7 +9,7 @@ Dealancer is designed to connect talented freelancers with clients looking for h
 ## 🛠️ Tech Stack (Current)
 - **Backend:** Django Rest Framework (DRF)
 - **Authentication:** JWT (SimpleJWT)
-- **Database:** SQLite (Development) / PostgreSQL (Planned)
+- **Database:** PostgreSQL (Development & Production)
 - **Documentation:** drf-spectacular (OpenAPI 3.0)
 - **Environment:** Python 3.x, Virtualenv
 
