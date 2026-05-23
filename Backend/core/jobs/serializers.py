@@ -49,13 +49,14 @@ class JobListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for list views — avoids N+1 on bids."""
     categories = SkillCategorySerializer(many=True, read_only=True)
     bid_count = serializers.IntegerField(read_only=True)  # annotated in viewset
+    client_id = serializers.PrimaryKeyRelatedField(source='client', read_only=True)
 
     class Meta:
         model = Job
         fields = [
             "id", "title", "categories", "budget_type",
             "budget_min", "budget_max", "status", "deadline",
-            "created_at", "bid_count",
+            "created_at", "bid_count", "client_id",
         ]
 
 
@@ -79,11 +80,12 @@ class JobDetailSerializer(serializers.ModelSerializer):
     )
     bids = serializers.SerializerMethodField()
     client = serializers.StringRelatedField(read_only=True)
+    client_id = serializers.PrimaryKeyRelatedField(source='client', read_only=True)
 
     class Meta:
         model = Job
         fields = [
-            "id", "title", "description", "client", "categories", "category_ids",
+            "id", "title", "description", "client", "client_id", "categories", "category_ids",
             "skills_required", "skill_ids", "budget_type", "budget_min", "budget_max",
             "deadline", "status", "bids", "created_at", "updated_at",
         ]
