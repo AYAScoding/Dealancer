@@ -111,3 +111,33 @@ class Bid(models.Model):
 
     def __str__(self):
         return f"Bid by {self.freelancer} on {self.job}"
+
+
+class Contract(models.Model):
+    class Status(models.TextChoices):
+        ACTIVE = "ACTIVE", "Active"
+        COMPLETED = "COMPLETED", "Completed"
+        CANCELLED = "CANCELLED", "Cancelled"
+
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="client_contracts",
+    )
+    freelancer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="freelancer_contracts",
+    )
+    job = models.OneToOneField(Job, on_delete=models.CASCADE, related_name="contract")
+    accepted_bid = models.OneToOneField(Bid, on_delete=models.PROTECT, related_name="contract")
+    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Contract for {self.job}"

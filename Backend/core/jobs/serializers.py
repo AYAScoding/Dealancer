@@ -1,6 +1,6 @@
 # jobs/serializers.py
 from rest_framework import serializers
-from .models import Job, Bid
+from .models import Job, Bid, Contract
 from users.models import SkillCategory, Skill
 from users.serializers import SkillCategorySerializer, SkillSerializer
 
@@ -177,3 +177,23 @@ class JobDetailSerializer(serializers.ModelSerializer):
             instance.skills_required.set(skills_required)
 
         return instance
+
+
+class ContractSerializer(serializers.ModelSerializer):
+    client = serializers.StringRelatedField(read_only=True)
+    client_id = serializers.PrimaryKeyRelatedField(source="client", read_only=True)
+    freelancer = serializers.StringRelatedField(read_only=True)
+    freelancer_id = serializers.PrimaryKeyRelatedField(source="freelancer", read_only=True)
+    job_title = serializers.CharField(source="job.title", read_only=True)
+    job_status = serializers.CharField(source="job.status", read_only=True)
+    bid_cover_letter = serializers.CharField(source="accepted_bid.cover_letter", read_only=True)
+    estimated_days = serializers.IntegerField(source="accepted_bid.estimated_days", read_only=True)
+
+    class Meta:
+        model = Contract
+        fields = [
+            "id", "client", "client_id", "freelancer", "freelancer_id",
+            "job", "job_title", "job_status", "accepted_bid", "bid_cover_letter",
+            "estimated_days", "amount", "status", "created_at", "updated_at",
+        ]
+        read_only_fields = fields

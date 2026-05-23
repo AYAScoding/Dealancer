@@ -3,15 +3,19 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Count
+from django.db import transaction
+import logging
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
-from .models import Job, Bid
+from .models import Job, Bid, Contract
 from users.models import SkillCategory
-from .serializers import JobListSerializer, JobDetailSerializer, BidSerializer, CategorySerializer
+from .serializers import JobListSerializer, JobDetailSerializer, BidSerializer, CategorySerializer, ContractSerializer
 from .permissions import IsClientOrReadOnly, IsJobOwner, IsFreelancerBidOwner
 from .filters import JobFilter
 from users.permissions import IsProfileComplete
+
+logger = logging.getLogger(__name__)
 
 
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -73,6 +77,9 @@ class JobViewSet(viewsets.ModelViewSet):
 
         job.status = new_status
         job.save()
+        if hasattr(job, "contract") and job.contract.status == Contract.Status.ACTIVE:
+            job.contract.status = Contract.Status.COMPLETED if new_status == Job.Status.COMPLETED else Contract.Status.CANCELLED
+            job.contract.save()
         return Response(JobDetailSerializer(job, context={"request": request}).data)
 
 
@@ -130,19 +137,71 @@ class BidViewSet(viewsets.ModelViewSet):
         if bid.status != Bid.Status.PENDING:
             return Response({"detail": "Only pending bids can be accepted."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1. Update job status
-        job.status = Job.Status.IN_PROGRESS
-        job.save()
+        with transaction.atomic():
+            # 1. Update job status
+            job.status = Job.Status.IN_PROGRESS
+            job.save()
 
-        # 2. Update accepted bid
-        bid.status = Bid.Status.ACCEPTED
-        bid.save()
+            # 2. Update accepted bid
+            bid.status = Bid.Status.ACCEPTED
+            bid.save()
 
-        # 3. Reject other bids
-        Bid.objects.filter(job=job, status=Bid.Status.PENDING).exclude(id=bid.id).update(status=Bid.Status.REJECTED)
+            # 3. Reject other bids
+            Bid.objects.filter(job=job, status=Bid.Status.PENDING).exclude(id=bid.id).update(status=Bid.Status.REJECTED)
 
-        # 4. Trigger asynchronous emails via Celery
+            # 4. Create the contract that represents the active work
+            Contract.objects.get_or_create(
+                job=job,
+                defaults={
+                    "client": job.client,
+                    "freelancer": bid.freelancer,
+                    "accepted_bid": bid,
+                    "amount": bid.proposed_amount,
+                },
+            )
+
+        # 5. Trigger asynchronous emails via Celery
         from .tasks import send_hiring_emails
-        send_hiring_emails.delay(job.id, bid.id)
+        try:
+            send_hiring_emails.delay(job.id, bid.id)
+        except Exception:
+            logger.exception("Hiring emails could not be queued for job %s and bid %s", job.id, bid.id)
 
         return Response(BidSerializer(bid).data)
+
+
+class ContractViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ContractSerializer
+    permission_classes = [permissions.IsAuthenticated, IsProfileComplete]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Contract.objects.select_related("client", "freelancer", "job", "accepted_bid")
+        if getattr(user, "role", None) == "CLIENT":
+            return queryset.filter(client=user)
+        return queryset.filter(freelancer=user)
+
+    def _transition(self, request, new_status):
+        contract = self.get_object()
+        if contract.status != Contract.Status.ACTIVE:
+            return Response({"detail": "Only active contracts can be updated."}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            contract.status = new_status
+            contract.save()
+
+            if new_status == Contract.Status.COMPLETED:
+                contract.job.status = Job.Status.COMPLETED
+            else:
+                contract.job.status = Job.Status.CANCELLED
+            contract.job.save()
+
+        return Response(ContractSerializer(contract, context={"request": request}).data)
+
+    @action(detail=True, methods=["patch"])
+    def complete(self, request, pk=None):
+        return self._transition(request, Contract.Status.COMPLETED)
+
+    @action(detail=True, methods=["patch"])
+    def cancel(self, request, pk=None):
+        return self._transition(request, Contract.Status.CANCELLED)
