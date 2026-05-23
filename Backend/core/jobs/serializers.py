@@ -13,18 +13,21 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class BidSerializer(serializers.ModelSerializer):
     freelancer = serializers.StringRelatedField(read_only=True)
+    freelancer_id = serializers.PrimaryKeyRelatedField(source="freelancer", read_only=True)
+    job_title = serializers.CharField(source="job.title", read_only=True)
+    job_status = serializers.CharField(source="job.status", read_only=True)
 
     class Meta:
         model = Bid
         fields = [
-            "id", "job", "freelancer", "cover_letter",
+            "id", "job", "job_title", "job_status", "freelancer", "freelancer_id", "cover_letter",
             "proposed_amount", "estimated_days", "status", "created_at",
         ]
-        read_only_fields = ["freelancer", "status", "created_at"]
+        read_only_fields = ["freelancer", "freelancer_id", "job_title", "job_status", "status", "created_at"]
 
     def validate(self, data):
         request = self.context["request"]
-        job = data["job"]
+        job = data.get("job") or getattr(self.instance, "job", None)
 
         # Rule: Can only bid on OPEN jobs
         if job.status != Job.Status.OPEN:
@@ -35,7 +38,10 @@ class BidSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("You cannot bid on your own job.")
 
         # Rule: One bid per freelancer (belt + suspenders over DB constraint)
-        if Bid.objects.filter(job=job, freelancer=request.user).exists():
+        existing_bid = Bid.objects.filter(job=job, freelancer=request.user)
+        if self.instance:
+            existing_bid = existing_bid.exclude(pk=self.instance.pk)
+        if existing_bid.exists():
             raise serializers.ValidationError("You have already submitted a bid for this job.")
 
         return data

@@ -17,7 +17,7 @@ from users.permissions import IsProfileComplete
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = SkillCategory.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticated, IsProfileComplete]
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class JobViewSet(viewsets.ModelViewSet):
@@ -83,6 +83,8 @@ class BidViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == "create":
             # Only freelancers can create bids
+            return [permissions.IsAuthenticated(), IsProfileComplete()]
+        if self.action == "accept":
             return [permissions.IsAuthenticated(), IsProfileComplete()]
         return [permissions.IsAuthenticated(), IsFreelancerBidOwner(), IsProfileComplete()]
 
