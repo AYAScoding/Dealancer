@@ -37,6 +37,8 @@ class CustomUser(AbstractUser):
 
     role = models.CharField(max_length=20, choices=Role.choices)
     is_verified = models.BooleanField(default=False)
+    totp_secret = models.CharField(max_length=32, null=True, blank=True)
+    is_2fa_enabled = models.BooleanField(default=False)
 
     @property
     def is_profile_complete(self):

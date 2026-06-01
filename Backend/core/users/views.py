@@ -6,12 +6,37 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 from .models import CustomUser
 from drf_spectacular.utils import extend_schema
+from django.core import signing
+import base64
+from io import BytesIO
+import pyotp
+import qrcode
 
 from .serializers import RegisterSerializer, UserSerializer
 
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from .utils import email_verification_token, send_verification_email
+
+TWO_FA_TOKEN_SALT = "dealancer.auth.2fa"
+TWO_FA_TOKEN_MAX_AGE = 300
+
+
+def build_auth_response(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        "user": UserSerializer(user).data,
+        "tokens": {
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+        }
+    }
+
+
+def verify_totp(user, otp_code):
+    if not user.totp_secret or not otp_code:
+        return False
+    return pyotp.TOTP(user.totp_secret).verify(str(otp_code).strip(), valid_window=1)
 
 
 class RegisterView(APIView):
@@ -62,15 +87,14 @@ class LoginView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        refresh = RefreshToken.for_user(user)
+        if user.is_2fa_enabled:
+            ephemeral_token = signing.dumps({"user_id": str(user.id)}, salt=TWO_FA_TOKEN_SALT)
+            return Response(
+                {"requires_2fa": True, "ephemeral_token": ephemeral_token},
+                status=status.HTTP_200_OK
+            )
 
-        return Response({
-            "user": UserSerializer(user).data,
-            "tokens": {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-            }
-        }, status=status.HTTP_200_OK)
+        return Response(build_auth_response(user), status=status.HTTP_200_OK)
 
 class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
@@ -137,6 +161,100 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+class TwoFactorStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({"is_2fa_enabled": request.user.is_2fa_enabled})
+
+
+class TwoFactorSetupView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.is_2fa_enabled:
+            return Response(
+                {"detail": "Two-factor authentication is already enabled."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        secret = pyotp.random_base32()
+        request.user.totp_secret = secret
+        request.user.is_2fa_enabled = False
+        request.user.save(update_fields=["totp_secret", "is_2fa_enabled"])
+
+        issuer = "Dealancer"
+        account_name = request.user.email
+        provisioning_uri = pyotp.TOTP(secret).provisioning_uri(
+            name=account_name,
+            issuer_name=issuer,
+        )
+
+        image = qrcode.make(provisioning_uri)
+        buffer = BytesIO()
+        image.save(buffer, format="PNG")
+        qr_code = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+        return Response({
+            "secret": secret,
+            "qr_code": qr_code,
+        })
+
+
+class TwoFactorVerifySetupView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        otp_code = request.data.get("otp_code")
+        if not verify_totp(request.user, otp_code):
+            return Response({"detail": "Invalid authentication code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.is_2fa_enabled = True
+        request.user.save(update_fields=["is_2fa_enabled"])
+        return Response({"is_2fa_enabled": True})
+
+
+class TwoFactorConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        ephemeral_token = request.data.get("ephemeral_token")
+        otp_code = request.data.get("otp_code")
+
+        try:
+            payload = signing.loads(ephemeral_token, salt=TWO_FA_TOKEN_SALT, max_age=TWO_FA_TOKEN_MAX_AGE)
+            user = CustomUser.objects.get(id=payload.get("user_id"))
+        except signing.SignatureExpired:
+            return Response({"detail": "Session expired."}, status=status.HTTP_400_BAD_REQUEST)
+        except (signing.BadSignature, CustomUser.DoesNotExist, TypeError, ValueError):
+            return Response({"detail": "Invalid two-factor session."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not user.is_2fa_enabled:
+            return Response({"detail": "Two-factor authentication is not enabled."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not verify_totp(user, otp_code):
+            return Response({"detail": "Invalid authentication code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(build_auth_response(user), status=status.HTTP_200_OK)
+
+
+class TwoFactorDisableView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        otp_code = request.data.get("otp_code")
+        if not request.user.is_2fa_enabled:
+            return Response({"is_2fa_enabled": False})
+
+        if not verify_totp(request.user, otp_code):
+            return Response({"detail": "Invalid authentication code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        request.user.totp_secret = None
+        request.user.is_2fa_enabled = False
+        request.user.save(update_fields=["totp_secret", "is_2fa_enabled"])
+        return Response({"is_2fa_enabled": False})
     
 
 from .models import FreelancerProfile, ClientProfile
