@@ -2,6 +2,7 @@ services:
   - type: web
     name: dealancer-backend
     env: docker
+    plan: free
     dockerContext: ./Backend
     dockerfilePath: ./Backend/Dockerfile
     envVars:
@@ -15,6 +16,7 @@ services:
   - type: web
     name: dealancer-frontend
     env: docker
+    plan: free
     dockerContext: ./Frontend
     dockerfilePath: ./Frontend/Dockerfile
     envVars:
