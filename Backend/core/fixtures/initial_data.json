@@ -1,42 +1,66 @@
-[
-  {
-    "model": "users.skillcategory",
-    "pk": 1,
-    "fields": {"name": "Programming"}
-  },
-  {
-    "model": "users.skillcategory",
-    "pk": 2,
-    "fields": {"name": "Design"}
-  },
-  {
-    "model": "users.skillcategory",
-    "pk": 3,
-    "fields": {"name": "Marketing"}
-  },
-  {
-    "model": "users.skill",
-    "pk": 1,
-    "fields": {"name": "Python", "category": 1}
-  },
-  {
-    "model": "users.skill",
-    "pk": 2,
-    "fields": {"name": "Django", "category": 1}
-  },
-  {
-    "model": "users.skill",
-    "pk": 3,
-    "fields": {"name": "React", "category": 1}
-  },
-  {
-    "model": "users.skill",
-    "pk": 4,
-    "fields": {"name": "Figma", "category": 2}
-  },
-  {
-    "model": "users.skill",
-    "pk": 5,
-    "fields": {"name": "SEO", "category": 3}
-  }
-]
+{
+  "job_categories": [
+    {"name": "Web Development", "slug": "web-development"},
+    {"name": "Mobile App Development", "slug": "mobile-app-development"},
+    {"name": "UI/UX Design", "slug": "ui-ux-design"},
+    {"name": "Data Science & AI", "slug": "data-science-ai"},
+    {"name": "Writing & Translation", "slug": "writing-translation"},
+    {"name": "Marketing", "slug": "marketing"},
+    {"name": "DevOps", "slug": "devops"},
+    {"name": "Graphic Design", "slug": "graphic-design"},
+    {"name": "Content Creation", "slug": "content-creation"},
+    {"name": "Cybersecurity", "slug": "cybersecurity"},
+    {"name": "Cloud Architecture", "slug": "cloud-architecture"},
+    {"name": "Project Management", "slug": "project-management"}
+  ],
+  "skill_categories": [
+    {
+      "name": "Web Development",
+      "skills": ["HTML", "CSS", "JavaScript", "TypeScript", "Django", "Flask", "React", "Vue.js", "Angular", "Next.js", "Gatsby", "Bootstrap", "Tailwind CSS", "Sass", "Webpack", "Babel"]
+    },
+    {
+      "name": "Mobile App Development",
+      "skills": ["Flutter", "React Native", "Swift", "Kotlin", "Ionic", "Xamarin", "Android SDK", "iOS SDK", "Firebase", "Realm", "SQLite", "Room"]
+    },
+    {
+      "name": "UI/UX Design",
+      "skills": ["Figma", "Sketch", "Adobe XD", "Illustrator", "Photoshop", "InVision", "Framer", "Axure RP", "Balsamiq", "User Research", "Wireframing", "Prototyping"]
+    },
+    {
+      "name": "Data Science & AI",
+      "skills": ["Python", "R", "TensorFlow", "PyTorch", "Keras", "Scikit‑learn", "Pandas", "NumPy", "Matplotlib", "Seaborn", "SQL", "PostgreSQL", "Spark", "Hadoop", "NLTK", "spaCy", "OpenCV"]
+    },
+    {
+      "name": "Writing & Translation",
+      "skills": ["Copywriting", "Technical Writing", "SEO Writing", "Content Strategy", "Proofreading", "Editing", "Spanish", "French", "German", "Chinese", "Japanese", "Localization"]
+    },
+    {
+      "name": "Marketing",
+      "skills": ["SEO", "Content Marketing", "Google Ads", "Facebook Ads", "Instagram Ads", "LinkedIn Ads", "Email Marketing", "Social Media Management", "Analytics", "Google Analytics", "HubSpot", "Mailchimp"]
+    },
+    {
+      "name": "DevOps",
+      "skills": ["Docker", "Kubernetes", "AWS", "Azure", "Google Cloud", "GitLab CI", "Jenkins", "Terraform", "Ansible", "Prometheus", "Grafana", "Helm", "CI/CD"]
+    },
+    {
+      "name": "Graphic Design",
+      "skills": ["Adobe Photoshop", "Adobe Illustrator", "Adobe InDesign", "CorelDRAW", "Affinity Designer", "Brand Identity", "Logo Design", "Print Design", "Typography"]
+    },
+    {
+      "name": "Content Creation",
+      "skills": ["Video Editing", "Premiere Pro", "Final Cut Pro", "After Effects", "Audio Editing", "Audacity", "Podcast Production", "Storyboarding", "Scripting"]
+    },
+    {
+      "name": "Cybersecurity",
+      "skills": ["Network Security", "Penetration Testing", "Ethical Hacking", "OWASP", "WAF", "SIEM", "Malware Analysis", "Cryptography", "Compliance (ISO, GDPR)", "Incident Response"]
+    },
+    {
+      "name": "Cloud Architecture",
+      "skills": ["AWS Solutions Architect", "Azure Solutions Architect", "Google Cloud Architect", "Serverless", "Microservices", "API Design", "Terraform", "CloudFormation", "Cost Optimization"]
+    },
+    {
+      "name": "Project Management",
+      "skills": ["Agile", "Scrum", "Kanban", "Jira", "Trello", "Asana", "Risk Management", "Stakeholder Communication", "Budgeting", "Resource Planning"]
+    }
+  ]
+}
