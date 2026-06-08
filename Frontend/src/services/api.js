@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Default configuration for the axios instance
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000/api",
+  baseURL: import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000/api",
   headers: {
     "Content-Type": "application/json",
   },

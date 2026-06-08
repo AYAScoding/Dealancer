@@ -20,11 +20,8 @@ services:
     dockerContext: ./Frontend
     dockerfilePath: ./Frontend/Dockerfile
     envVars:
-      - key: BACKEND_URL
-        fromService:
-          type: web
-          name: dealancer-backend
-          envVarKey: RENDER_EXTERNAL_URL
+      - key: VITE_BACKEND_URL
+        value: "https://dealancer-backend.onrender.com/api"
 
 databases:
   - name: dealancer-db
