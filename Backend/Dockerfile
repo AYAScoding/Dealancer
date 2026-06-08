@@ -19,4 +19,4 @@ ENV PORT=8000
 EXPOSE $PORT
 
 # Start the server using the PORT variable. Runs migrations automatically first.
-CMD sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:$PORT"
+CMD sh -c "python manage.py migrate && python manage.py loaddata fixtures/initial_data.json && python manage.py runserver 0.0.0.0:$PORT"

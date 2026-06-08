@@ -1,0 +1,42 @@
+[
+  {
+    "model": "users.skillcategory",
+    "pk": 1,
+    "fields": {"name": "Programming"}
+  },
+  {
+    "model": "users.skillcategory",
+    "pk": 2,
+    "fields": {"name": "Design"}
+  },
+  {
+    "model": "users.skillcategory",
+    "pk": 3,
+    "fields": {"name": "Marketing"}
+  },
+  {
+    "model": "users.skill",
+    "pk": 1,
+    "fields": {"name": "Python", "category": 1}
+  },
+  {
+    "model": "users.skill",
+    "pk": 2,
+    "fields": {"name": "Django", "category": 1}
+  },
+  {
+    "model": "users.skill",
+    "pk": 3,
+    "fields": {"name": "React", "category": 1}
+  },
+  {
+    "model": "users.skill",
+    "pk": 4,
+    "fields": {"name": "Figma", "category": 2}
+  },
+  {
+    "model": "users.skill",
+    "pk": 5,
+    "fields": {"name": "SEO", "category": 3}
+  }
+]
