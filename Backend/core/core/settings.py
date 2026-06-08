@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-ja#7lo2q$jm-x)1roqv(i)40u=ar2oyjzx0env@beutb7lth#%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["*"]
 
 # CORS — allow the React dev server to talk to Django
 CORS_ALLOWED_ORIGINS = [
