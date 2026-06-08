@@ -61,9 +61,10 @@ class PasswordResetRequestView(APIView):
         # For now it points to your API confirm endpoint.
         reset_link = f"{settings.FRONTEND_URL}/reset-password?uid={uid}&token={token}"
 
-        send_mail(
-            subject="Reset Your Dealancer Password",
-            message=f"""
+        try:
+            send_mail(
+                subject="Reset Your Dealancer Password",
+                message=f"""
 Hi {user.email},
 
 You requested a password reset for your Dealancer account.
@@ -76,10 +77,12 @@ This link expires in 24 hours.
 If you didn't request this, you can safely ignore this email.
 
 — The Dealancer Team
-            """.strip(),
-            from_email=None,  # Uses DEFAULT_FROM_EMAIL from settings
-            recipient_list=[email],
-        )
+                """.strip(),
+                from_email=None,  # Uses DEFAULT_FROM_EMAIL from settings
+                recipient_list=[email],
+            )
+        except Exception:
+            pass
 
         return Response({"detail": "If this email exists, a reset link has been sent."})
 
