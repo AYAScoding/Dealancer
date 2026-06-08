@@ -52,12 +52,12 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = env("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@dealancer.com")
 
 # --- Frontend URL (used in password reset emails) ---
-FRONTEND_URL = env("FRONTEND_URL")
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 
 # settings.py
 PASSWORD_RESET_TIMEOUT = 86400  # 24 hours 
