@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 import { Eye, EyeOff, KeyRound, CheckCircle, XCircle } from "lucide-react";
@@ -41,18 +41,11 @@ export default function ResetPassword() {
   const uid = searchParams.get("uid");
   const token = searchParams.get("token");
 
+  const hasValidLink = Boolean(uid && token);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | loading | success | error
-  const [message, setMessage] = useState("");
-
-  // If no uid/token in URL, this is an invalid link — show error immediately
-  useEffect(() => {
-    if (!uid || !token) {
-      setStatus("error");
-      setMessage("This reset link is invalid or malformed. Please request a new one.");
-    }
-  }, [uid, token]);
+  const [status, setStatus] = useState(hasValidLink ? "idle" : "error"); // idle | loading | success | error
+  const [message, setMessage] = useState(hasValidLink ? "" : "This reset link is invalid or malformed. Please request a new one.");
 
   const handleSubmit = async (e) => {
     e.preventDefault();

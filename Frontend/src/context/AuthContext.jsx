@@ -1,6 +1,7 @@
-import React, { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect } from "react";
 import api from "../services/api";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -15,7 +16,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const res = await api.get("/auth/me/");
           setUser(res.data);
-        } catch (error) {
+        } catch {
           console.error("Failed to fetch user, token likely expired/invalid.");
           setUser(null);
         }
@@ -37,6 +38,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await api.post("/auth/login/", { email, password });
+      if (res.data.requires_2fa) {
+        return {
+          success: false,
+          requires2fa: true,
+          ephemeralToken: res.data.ephemeral_token,
+        };
+      }
       const { user, tokens } = res.data;
 
       localStorage.setItem("accessToken", tokens.access);
@@ -47,6 +55,27 @@ export const AuthProvider = ({ children }) => {
       return {
         success: false,
         message: error.response?.data?.error || "Login failed.",
+      };
+    }
+  };
+
+  const confirm2fa = async (ephemeralToken, otpCode) => {
+    try {
+      const res = await api.post("/auth/2fa/confirm/", {
+        ephemeral_token: ephemeralToken,
+        otp_code: otpCode,
+      });
+      const { user, tokens } = res.data;
+
+      localStorage.setItem("accessToken", tokens.access);
+      localStorage.setItem("refreshToken", tokens.refresh);
+      setUser(user);
+      return { success: true, user };
+    } catch (error) {
+      return {
+        success: false,
+        expired: error.response?.data?.detail === "Session expired.",
+        message: error.response?.data?.detail || "Two-factor verification failed.",
       };
     }
   };
@@ -93,9 +122,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, setUser }}>
+    <AuthContext.Provider value={{ user, loading, login, confirm2fa, register, logout, refreshUser, setUser }}>
       {children}
     </AuthContext.Provider>
   );
 };
-

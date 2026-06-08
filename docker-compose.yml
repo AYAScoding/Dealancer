@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: dealancer_db
+    environment:
+      POSTGRES_USER: dealancer_user
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: dealancer_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: dealancer_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./Backend:/app
+    environment:
+      - DEBUG=1
+      # Connect to the local postgres container
+      - DATABASE_URL=postgres://dealancer_user:password123@db:5432/dealancer_db
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: dealancer_frontend
+    ports:
+      # Nginx inside container runs on port 80
+      - "5173:80"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

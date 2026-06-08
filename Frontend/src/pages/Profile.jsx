@@ -1,22 +1,26 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
 import {
   User,
-  Briefcase,
   LayoutDashboard,
   Search,
   Plus,
   LogOut,
   Upload,
   AlertCircle,
+  ChevronDown,
   X,
   Check,
+  Pencil,
   Globe,
   Loader2,
-  DollarSign
+  DollarSign,
+  Shield,
+  ShieldCheck
 } from "lucide-react";
+import { Alert, Button, Card, TextInput } from "../components/ui";
 
 export default function Profile() {
   const { user, logout, refreshUser } = useContext(AuthContext);
@@ -25,7 +29,7 @@ export default function Profile() {
   const mustComplete = location.state?.mustComplete || false;
 
   // Profile data state
-  const [profile, setProfile] = useState(null);
+  const [, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -48,11 +52,26 @@ export default function Profile() {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
 
-  // Skills & Categories loading & searching states
+  // Skills & Categories loading states
   const [allSkills, setAllSkills] = useState([]);
   const [allCategories, setAllCategories] = useState([]);
-  const [skillSearch, setSkillSearch] = useState("");
-  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
+  const [editingSkillCategoryId, setEditingSkillCategoryId] = useState(null);
+  const [draftCategoryId, setDraftCategoryId] = useState("");
+  const [draftSkillIds, setDraftSkillIds] = useState([]);
+  const [skillPickerError, setSkillPickerError] = useState("");
+
+  // Two-factor authentication state
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [twoFactorLoading, setTwoFactorLoading] = useState(true);
+  const [twoFactorMode, setTwoFactorMode] = useState("idle");
+  const [twoFactorSetup, setTwoFactorSetup] = useState(null);
+  const [twoFactorStep, setTwoFactorStep] = useState(1);
+  const [twoFactorOtp, setTwoFactorOtp] = useState("");
+  const [disableOtp, setDisableOtp] = useState("");
+  const [disableOpen, setDisableOpen] = useState(false);
+  const [manualSecretOpen, setManualSecretOpen] = useState(false);
+  const [securityError, setSecurityError] = useState("");
+  const [securitySuccess, setSecuritySuccess] = useState("");
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -82,7 +101,7 @@ export default function Profile() {
         if (user?.role === "FREELANCER") {
           const [skillsRes, catsRes] = await Promise.all([
             api.get("/skills/"),
-            api.get("/categories/")
+            api.get("/skill-categories/")
           ]);
           setAllSkills(skillsRes.data.results || skillsRes.data);
           setAllCategories(catsRes.data.results || catsRes.data);
@@ -100,6 +119,23 @@ export default function Profile() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const fetchTwoFactorStatus = async () => {
+      try {
+        const res = await api.get("/auth/2fa/status/");
+        setTwoFactorEnabled(res.data.is_2fa_enabled);
+      } catch (e) {
+        console.error("Failed to load two-factor status", e);
+      } finally {
+        setTwoFactorLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchTwoFactorStatus();
+    }
+  }, [user]);
+
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -108,47 +144,100 @@ export default function Profile() {
     }
   };
 
-  const toggleCategory = (category) => {
-    const isSelected = selectedCategories.some(c => c.id === category.id);
-    if (isSelected) {
-      // Removing category: dynamically clear any selected skills belonging to this category
-      setSelectedCategories(selectedCategories.filter(c => c.id !== category.id));
-      setSelectedSkills(selectedSkills.filter(s => s.category?.id !== category.id));
-      setErrorMsg("");
-    } else {
-      if (selectedCategories.length >= 3) {
-        setErrorMsg("You can select a maximum of 3 distinct skill categories.");
-        return;
-      }
-      setErrorMsg("");
-      setSelectedCategories([...selectedCategories, category]);
-    }
-  };
-
   const getSkillsCountForCategory = (categoryId) => {
     return selectedSkills.filter(s => s.category?.id === categoryId).length;
   };
 
-  const addSkill = (skill) => {
-    const catId = skill.category?.id;
-    if (!catId) return;
-
-    const count = getSkillsCountForCategory(catId);
-    if (count >= 5) {
-      setErrorMsg(`You can choose a maximum of 5 skills for the '${skill.category.name}' category.`);
+  const beginCategoryDraft = (categoryId) => {
+    const numericCategoryId = Number(categoryId);
+    if (!numericCategoryId) {
+      setDraftCategoryId("");
+      setDraftSkillIds([]);
+      setEditingSkillCategoryId(null);
+      return;
+    }
+    if (!editingSkillCategoryId && selectedCategories.length >= 3 && !selectedCategories.some((category) => category.id === numericCategoryId)) {
+      setSkillPickerError("You can choose up to 3 skill categories.");
       return;
     }
 
-    if (!selectedSkills.find(s => s.id === skill.id)) {
-      setSelectedSkills([...selectedSkills, skill]);
-      setErrorMsg("");
-    }
-    setSkillSearch("");
-    setShowSkillDropdown(false);
+    setDraftCategoryId(numericCategoryId);
+    setDraftSkillIds(
+      selectedSkills
+        .filter((skill) => skill.category?.id === numericCategoryId)
+        .map((skill) => skill.id)
+    );
+    setEditingSkillCategoryId(selectedCategories.some((category) => category.id === numericCategoryId) ? numericCategoryId : null);
+    setSkillPickerError("");
   };
 
-  const removeSkill = (skillId) => {
-    setSelectedSkills(selectedSkills.filter(s => s.id !== skillId));
+  const editSkillCategory = (category) => {
+    setDraftCategoryId(category.id);
+    setDraftSkillIds(selectedSkills.filter((skill) => skill.category?.id === category.id).map((skill) => skill.id));
+    setEditingSkillCategoryId(category.id);
+    setSkillPickerError("");
+  };
+
+  const toggleDraftSkill = (skillId) => {
+    setDraftSkillIds((prev) => (
+      prev.includes(skillId)
+        ? prev.filter((id) => id !== skillId)
+        : prev.length >= 5
+        ? prev
+        : [...prev, skillId]
+    ));
+    if (!draftSkillIds.includes(skillId) && draftSkillIds.length >= 5) {
+      setSkillPickerError("You can choose up to 5 skills per category.");
+    } else {
+      setSkillPickerError("");
+    }
+  };
+
+  const confirmSkillCategory = () => {
+    const category = allCategories.find((cat) => cat.id === draftCategoryId);
+    if (!category) {
+      setSkillPickerError("Choose a category first.");
+      return;
+    }
+    if (draftSkillIds.length === 0) {
+      setSkillPickerError("Pick at least one skill to continue");
+      return;
+    }
+    if (draftSkillIds.length > 5) {
+      setSkillPickerError("You can choose up to 5 skills per category.");
+      return;
+    }
+    if (!editingSkillCategoryId && selectedCategories.length >= 3 && !selectedCategories.some((cat) => cat.id === category.id)) {
+      setSkillPickerError("You can choose up to 3 skill categories.");
+      return;
+    }
+
+    const confirmedSkills = allSkills.filter((skill) => draftSkillIds.includes(skill.id));
+    setSelectedCategories((prev) => (
+      prev.some((cat) => cat.id === category.id)
+        ? prev.map((cat) => (cat.id === category.id ? category : cat))
+        : [...prev, category]
+    ));
+    setSelectedSkills((prev) => [
+      ...prev.filter((skill) => skill.category?.id !== category.id),
+      ...confirmedSkills,
+    ]);
+    setDraftCategoryId("");
+    setDraftSkillIds([]);
+    setEditingSkillCategoryId(null);
+    setSkillPickerError("");
+    setErrorMsg("");
+  };
+
+  const removeSkillCategory = (categoryId) => {
+    setSelectedCategories((prev) => prev.filter((category) => category.id !== categoryId));
+    setSelectedSkills((prev) => prev.filter((skill) => skill.category?.id !== categoryId));
+    if (draftCategoryId === categoryId) {
+      setDraftCategoryId("");
+      setDraftSkillIds([]);
+      setEditingSkillCategoryId(null);
+      setSkillPickerError("");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -170,12 +259,24 @@ export default function Profile() {
         return;
       }
       if (selectedCategories.length === 0) {
-        setErrorMsg("Please select at least one expertise category.");
+        setErrorMsg("Please confirm at least one expertise category with skills.");
         setSaving(false);
         return;
       }
-      if (selectedSkills.length === 0) {
-        setErrorMsg("Please add at least one skill tag.");
+      if (selectedCategories.length > 3) {
+        setErrorMsg("You can choose up to 3 expertise categories.");
+        setSaving(false);
+        return;
+      }
+      const categoriesWithoutSkills = selectedCategories.filter((category) => getSkillsCountForCategory(category.id) === 0);
+      if (selectedSkills.length === 0 || categoriesWithoutSkills.length > 0) {
+        setErrorMsg("Each confirmed expertise category needs at least one skill.");
+        setSaving(false);
+        return;
+      }
+      const categoriesWithTooManySkills = selectedCategories.filter((category) => getSkillsCountForCategory(category.id) > 5);
+      if (categoriesWithTooManySkills.length > 0) {
+        setErrorMsg("Each expertise category can include up to 5 skills.");
         setSaving(false);
         return;
       }
@@ -245,14 +346,50 @@ export default function Profile() {
     }
   };
 
-  const availableSkills = allSkills.filter(skill =>
-    selectedCategories.some(cat => cat.id === skill.category?.id)
-  );
+  const startTwoFactorSetup = async () => {
+    setSecurityError("");
+    setSecuritySuccess("");
+    setTwoFactorMode("setup");
+    setTwoFactorStep(1);
+    setTwoFactorOtp("");
+    try {
+      const res = await api.post("/auth/2fa/setup/");
+      setTwoFactorSetup(res.data);
+    } catch (e) {
+      console.error("Failed to start two-factor setup", e);
+      setTwoFactorMode("idle");
+      setSecurityError(e.response?.data?.detail || "Failed to start two-factor setup.");
+    }
+  };
 
-  const filteredSkills = availableSkills.filter(skill =>
-    skill.name.toLowerCase().includes(skillSearch.toLowerCase()) &&
-    !selectedSkills.some(s => s.id === skill.id)
-  );
+  const verifyTwoFactorSetup = async () => {
+    setSecurityError("");
+    setSecuritySuccess("");
+    try {
+      await api.post("/auth/2fa/verify-setup/", { otp_code: twoFactorOtp });
+      setTwoFactorEnabled(true);
+      setTwoFactorMode("idle");
+      setTwoFactorSetup(null);
+      setTwoFactorOtp("");
+      setSecuritySuccess("Two-factor authentication is now enabled.");
+    } catch (e) {
+      setSecurityError(e.response?.data?.detail || "Invalid authentication code.");
+    }
+  };
+
+  const disableTwoFactor = async () => {
+    setSecurityError("");
+    setSecuritySuccess("");
+    try {
+      await api.post("/auth/2fa/disable/", { otp_code: disableOtp });
+      setTwoFactorEnabled(false);
+      setDisableOpen(false);
+      setDisableOtp("");
+      setSecuritySuccess("Two-factor authentication has been disabled.");
+    } catch (e) {
+      setSecurityError(e.response?.data?.detail || "Invalid authentication code.");
+    }
+  };
 
   if (loading) {
     return (
@@ -456,152 +593,21 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* CATEGORIES SELECTION (New Feature) */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Expertise Categories <span className="text-red-500">*</span>
-                    <span className="text-slate-400 font-normal text-xs ml-2">
-                      (Select up to 3 categories: {selectedCategories.length}/3)
-                    </span>
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {allCategories.map((cat) => {
-                      const isSelected = selectedCategories.some(c => c.id === cat.id);
-                      const isLimitReached = selectedCategories.length >= 3 && !isSelected;
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          disabled={isLimitReached}
-                          onClick={() => toggleCategory(cat)}
-                          className={`px-4 py-3 rounded-xl border text-xs font-semibold transition-all duration-200 flex items-center justify-between group cursor-pointer ${
-                            isSelected
-                              ? "bg-primary text-white border-primary shadow-sm ring-2 ring-primary/20"
-                              : isLimitReached
-                              ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed"
-                              : "bg-white text-slate-700 border-slate-200 hover:border-primary/50 hover:bg-slate-50/50"
-                          }`}
-                        >
-                          <span>{cat.name}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 shrink-0 ml-1.5" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* SKILLS MULTI-SELECT SEARCH tags */}
-                <div className="relative">
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Professional Skills <span className="text-red-500">*</span>
-                  </label>
-                  
-                  {selectedCategories.length === 0 ? (
-                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center text-slate-500 text-xs font-medium">
-                      Select at least one expertise category above to unlock skill search.
-                    </div>
-                  ) : (
-                    <>
-                      {/* Skill limits per category display */}
-                      <div className="flex flex-wrap gap-x-4 gap-y-2 mb-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                        {selectedCategories.map((cat) => {
-                          const count = getSkillsCountForCategory(cat.id);
-                          return (
-                            <div key={cat.id} className="text-xs font-medium flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                              <span className="text-slate-600">{cat.name}:</span>
-                              <span className={`font-bold ${count >= 5 ? "text-amber-600" : "text-slate-900"}`}>
-                                {count}/5 selected
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      <div className="w-full min-h-[50px] rounded-xl border border-slate-200 p-2 flex flex-wrap gap-2 items-center bg-white">
-                        {selectedSkills.map((skill) => (
-                          <span
-                            key={skill.id}
-                            className="bg-slate-100 text-slate-800 text-xs px-3 py-1.5 rounded-full font-semibold flex items-center gap-1.5 border border-slate-200/50 shadow-sm animate-in fade-in"
-                          >
-                            <span className="text-slate-900">{skill.name}</span>
-                            <span className="text-[10px] text-slate-400 font-normal">({skill.category?.name})</span>
-                            <button
-                              type="button"
-                              onClick={() => removeSkill(skill.id)}
-                              className="hover:bg-slate-200 rounded-full p-0.5 transition-colors text-slate-500 hover:text-slate-800 cursor-pointer"
-                            >
-                              <X size={12} />
-                            </button>
-                          </span>
-                        ))}
-                        <input
-                          type="text"
-                          value={skillSearch}
-                          onChange={(e) => {
-                            setSkillSearch(e.target.value);
-                            setShowSkillDropdown(true);
-                          }}
-                          onFocus={() => setShowSkillDropdown(true)}
-                          placeholder="Search and add skills..."
-                          className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm px-2 text-slate-900 placeholder-slate-400"
-                        />
-                      </div>
-
-                      {/* Dropdown search container */}
-                      {showSkillDropdown && skillSearch.trim() && (
-                        <div className="absolute z-10 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-lg max-h-60 overflow-y-auto divide-y divide-slate-50">
-                          {filteredSkills.length > 0 ? (
-                            filteredSkills.map((skill) => {
-                              const catId = skill.category?.id;
-                              const isCatLimit = getSkillsCountForCategory(catId) >= 5;
-                              return (
-                                <button
-                                  type="button"
-                                  disabled={isCatLimit}
-                                  key={skill.id}
-                                  onClick={() => addSkill(skill)}
-                                  className={`w-full text-left px-4 py-3 hover:bg-slate-50 text-sm font-medium flex items-center justify-between transition-colors cursor-pointer ${
-                                    isCatLimit
-                                      ? "text-slate-300 bg-slate-50/30 cursor-not-allowed"
-                                      : "text-slate-800"
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span>{skill.name}</span>
-                                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-normal">
-                                      {skill.category?.name}
-                                    </span>
-                                  </div>
-                                  {isCatLimit ? (
-                                    <span className="text-xs text-amber-600 font-semibold">Limit (5/5)</span>
-                                  ) : (
-                                    <Plus size={14} className="text-slate-400" />
-                                  )}
-                                </button>
-                              );
-                            })
-                          ) : (
-                            <div className="p-4 text-xs text-slate-400 text-center font-medium">
-                              No matching skills found.
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Backdrop click closer */}
-                      {showSkillDropdown && (
-                        <div
-                          className="fixed inset-0 z-[5]"
-                          onClick={() => setShowSkillDropdown(false)}
-                        />
-                      )}
-                    </>
-                  )}
-                  <p className="text-xs text-slate-500 mt-2">
-                    Enter keywords above and choose skills matching your chosen categories.
-                  </p>
-                </div>
+                <FreelancerSkillCategoryPicker
+                  categories={allCategories}
+                  skills={allSkills}
+                  selectedCategories={selectedCategories}
+                  selectedSkills={selectedSkills}
+                  draftCategoryId={draftCategoryId}
+                  draftSkillIds={draftSkillIds}
+                  editingCategoryId={editingSkillCategoryId}
+                  error={skillPickerError}
+                  onBeginCategory={beginCategoryDraft}
+                  onEditCategory={editSkillCategory}
+                  onToggleSkill={toggleDraftSkill}
+                  onConfirm={confirmSkillCategory}
+                  onRemoveCategory={removeSkillCategory}
+                />
 
                 {/* AVAILABILITY */}
                 <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
@@ -701,7 +707,423 @@ export default function Profile() {
             </button>
           </div>
         </form>
+
+        <SecuritySection
+          loading={twoFactorLoading}
+          enabled={twoFactorEnabled}
+          mode={twoFactorMode}
+          setup={twoFactorSetup}
+          setupStep={twoFactorStep}
+          otp={twoFactorOtp}
+          disableOtp={disableOtp}
+          disableOpen={disableOpen}
+          manualSecretOpen={manualSecretOpen}
+          error={securityError}
+          success={securitySuccess}
+          onStartSetup={startTwoFactorSetup}
+          onSetupStep={setTwoFactorStep}
+          onOtpChange={setTwoFactorOtp}
+          onVerifySetup={verifyTwoFactorSetup}
+          onDisableOtpChange={setDisableOtp}
+          onDisableOpen={setDisableOpen}
+          onDisable={disableTwoFactor}
+          onManualSecretOpen={setManualSecretOpen}
+        />
       </main>
     </div>
+  );
+}
+
+function FreelancerSkillCategoryPicker({
+  categories,
+  skills,
+  selectedCategories,
+  selectedSkills,
+  draftCategoryId,
+  draftSkillIds,
+  editingCategoryId,
+  error,
+  onBeginCategory,
+  onEditCategory,
+  onToggleSkill,
+  onConfirm,
+  onRemoveCategory,
+}) {
+  const availableCategories = categories.filter(
+    (category) => category.id === editingCategoryId || !selectedCategories.some((selected) => selected.id === category.id)
+  );
+  const categorySkills = skills.filter((skill) => skill.category?.id === draftCategoryId);
+  const hasDraft = Boolean(draftCategoryId);
+  const categoryLimitReached = selectedCategories.length >= 3 && !editingCategoryId;
+
+  const skillsForCategory = (categoryId) => selectedSkills.filter((skill) => skill.category?.id === categoryId);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-bold text-slate-700">
+          Expertise Categories & Skills <span className="text-red-500">*</span>
+        </label>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          Add 1 to 3 categories. Each category must include 1 to 5 skills.
+        </p>
+      </div>
+
+      {selectedCategories.length > 0 && (
+        <div className="space-y-3">
+          {selectedCategories.map((category) => (
+            <ConfirmedSkillCategoryRow
+              key={category.id}
+              category={category}
+              skills={skillsForCategory(category.id)}
+              onEdit={() => onEditCategory(category)}
+              onRemove={() => onRemoveCategory(category.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      <Card className="p-4 md:p-5">
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-black text-slate-950">
+                {editingCategoryId ? "Edit category skills" : "Add a Category"}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                {categoryLimitReached
+                  ? "You have reached the 3 category limit. Edit or remove a category to add another."
+                  : "Already confirmed categories are hidden from the selector."}
+              </p>
+            </div>
+            {hasDraft && (
+              <button
+                type="button"
+                onClick={() => onBeginCategory("")}
+                className="text-sm font-bold text-slate-500 transition hover:text-slate-900"
+              >
+                Cancel edit
+              </button>
+            )}
+          </div>
+
+          <SearchableCategorySelect
+            categories={availableCategories}
+            value={draftCategoryId}
+            placeholder="Choose a category"
+            disabled={categoryLimitReached}
+            onChange={onBeginCategory}
+          />
+
+          <div
+            className={`overflow-hidden transition-all duration-300 ${
+              hasDraft ? "max-h-[520px] opacity-100 translate-y-0" : "max-h-0 opacity-0 -translate-y-1"
+            }`}
+          >
+            <div className="rounded-2xl border border-cyan-100 bg-cyan-50/30 p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-sm font-bold text-slate-900">Pick at least one skill</p>
+                <span className={`text-xs font-semibold ${draftSkillIds.length >= 5 ? "text-amber-600" : "text-slate-500"}`}>
+                  {draftSkillIds.length}/5 selected
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {categorySkills.length > 0 ? (
+                  categorySkills.map((skill) => {
+                    const selected = draftSkillIds.includes(skill.id);
+                    return (
+                      <SkillChip
+                        key={skill.id}
+                        selected={selected}
+                        disabled={!selected && draftSkillIds.length >= 5}
+                        onClick={() => onToggleSkill(skill.id)}
+                      >
+                        {skill.name}
+                      </SkillChip>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-slate-500">No skills are listed for this category yet.</p>
+                )}
+              </div>
+              {error && <Alert variant="warning" className="mt-4">{error}</Alert>}
+              <div className="mt-4">
+                <Button type="button" onClick={onConfirm} icon={Check}>
+                  Confirm
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function ConfirmedSkillCategoryRow({ category, skills, onEdit, onRemove }) {
+  return (
+    <Card className="p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+          <p className="shrink-0 text-sm font-black text-slate-950">{category.name}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {skills.map((skill) => (
+              <span key={skill.id} className="rounded-full bg-cyan-50 px-2.5 py-1 text-xs font-bold text-cyan-700 ring-1 ring-cyan-100">
+                {skill.name}
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-950"
+            aria-label={`Edit ${category.name}`}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+            aria-label={`Remove ${category.name}`}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function SearchableCategorySelect({ categories, value, placeholder, disabled = false, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selectedCategory = categories.find((category) => category.id === value);
+  const filteredCategories = categories.filter((category) =>
+    category.name.toLowerCase().includes(query.trim().toLowerCase())
+  );
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-medium text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+      >
+        <span className={selectedCategory ? "text-slate-900" : "text-slate-400"}>
+          {selectedCategory?.name || placeholder}
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && !disabled && (
+        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
+          <div className="border-b border-slate-100 p-2">
+            <input
+              autoFocus
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search category by name..."
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10"
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto p-1">
+            {filteredCategories.length > 0 ? (
+              filteredCategories.map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(category.id);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                  className={`w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${
+                    value === category.id ? "bg-cyan-50 text-cyan-700" : "text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {category.name}
+                </button>
+              ))
+            ) : (
+              <div className="px-3 py-4 text-center text-sm font-medium text-slate-400">No categories found.</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SkillChip({ selected, disabled = false, onClick, children }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`rounded-full border px-3.5 py-2 text-sm font-bold transition-all duration-200 ${
+        selected
+          ? "border-cyan-600 bg-cyan-600 text-white shadow-sm shadow-cyan-700/20"
+          : disabled
+          ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-300"
+          : "border-slate-200 bg-white text-slate-700 hover:border-cyan-300 hover:bg-cyan-50"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SecuritySection({
+  loading,
+  enabled,
+  mode,
+  setup,
+  setupStep,
+  otp,
+  disableOtp,
+  disableOpen,
+  manualSecretOpen,
+  error,
+  success,
+  onStartSetup,
+  onSetupStep,
+  onOtpChange,
+  onVerifySetup,
+  onDisableOtpChange,
+  onDisableOpen,
+  onDisable,
+  onManualSecretOpen,
+}) {
+  return (
+    <Card className="mt-8 p-6 md:p-8 animate-in">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-4">
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${enabled ? "bg-emerald-50 text-emerald-700" : "bg-cyan-50 text-cyan-700"}`}>
+            {enabled ? <ShieldCheck className="h-6 w-6" /> : <Shield className="h-6 w-6" />}
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-slate-950">Security</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Protect your account with Google Authenticator two-factor authentication.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {error && <Alert variant="error" className="mt-5">{error}</Alert>}
+      {success && <Alert variant="success" className="mt-5">{success}</Alert>}
+
+      {loading ? (
+        <div className="mt-6 text-sm font-medium text-slate-500">Loading security settings...</div>
+      ) : mode === "setup" ? (
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 animate-in">
+          <div className="mb-5 flex gap-2">
+            <span className={`rounded-full px-3 py-1 text-xs font-bold ${setupStep === 1 ? "bg-slate-950 text-white" : "bg-white text-slate-500"}`}>1. Scan</span>
+            <span className={`rounded-full px-3 py-1 text-xs font-bold ${setupStep === 2 ? "bg-slate-950 text-white" : "bg-white text-slate-500"}`}>2. Confirm</span>
+          </div>
+
+          {setupStep === 1 ? (
+            <div className="space-y-5">
+              <p className="text-sm leading-6 text-slate-600">
+                Open Google Authenticator, add a new account, and scan this QR code.
+              </p>
+              {setup?.qr_code ? (
+                <div className="inline-block rounded-2xl border border-slate-200 bg-white p-4">
+                  <img src={`data:image/png;base64,${setup.qr_code}`} alt="Google Authenticator QR code" className="h-48 w-48" />
+                </div>
+              ) : (
+                <div className="text-sm text-slate-500">Generating QR code...</div>
+              )}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => onManualSecretOpen(!manualSecretOpen)}
+                  className="text-sm font-bold text-cyan-700 hover:text-cyan-900"
+                >
+                  {manualSecretOpen ? "Hide manual entry key" : "Show manual entry key"}
+                </button>
+                {manualSecretOpen && setup?.secret && (
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Manual entry key</p>
+                    <code className="mt-2 block select-all break-all rounded-lg bg-slate-950 px-3 py-2 font-mono text-sm text-cyan-100">
+                      {setup.secret}
+                    </code>
+                  </div>
+                )}
+              </div>
+              <Button type="button" onClick={() => onSetupStep(2)} disabled={!setup?.secret}>
+                Continue
+              </Button>
+            </div>
+          ) : (
+            <div className="max-w-sm space-y-5">
+              <p className="text-sm leading-6 text-slate-600">
+                Enter the 6-digit code from Google Authenticator to finish setup.
+              </p>
+              <TextInput
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => onOtpChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="text-center font-mono text-3xl tracking-[0.35em]"
+                placeholder="000000"
+              />
+              <div className="flex flex-wrap gap-3">
+                <Button type="button" onClick={onVerifySetup} disabled={otp.length !== 6} icon={ShieldCheck}>
+                  Verify and enable
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => onSetupStep(1)}>
+                  Back
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : enabled ? (
+        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 animate-in">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-bold text-emerald-900">Two-factor authentication is active.</p>
+              <p className="mt-1 text-sm text-emerald-800">You will be asked for a 6-digit code when signing in.</p>
+            </div>
+            <Button type="button" variant="danger" onClick={() => onDisableOpen(!disableOpen)}>
+              Disable 2FA
+            </Button>
+          </div>
+          {disableOpen && (
+            <div className="mt-5 max-w-sm space-y-4 animate-in">
+              <TextInput
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={disableOtp}
+                onChange={(e) => onDisableOtpChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                className="text-center font-mono text-3xl tracking-[0.35em]"
+                placeholder="000000"
+              />
+              <Button type="button" variant="danger" onClick={onDisable} disabled={disableOtp.length !== 6}>
+                Confirm disable
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:flex-row sm:items-center sm:justify-between animate-in">
+          <div>
+            <p className="font-bold text-slate-950">Two-factor authentication is disabled.</p>
+            <p className="mt-1 text-sm text-slate-500">Enable it to require a Google Authenticator code at login.</p>
+          </div>
+          <Button type="button" onClick={onStartSetup} icon={Shield}>
+            Enable 2FA
+          </Button>
+        </div>
+      )}
+    </Card>
   );
 }

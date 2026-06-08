@@ -1,120 +1,137 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import api from "../services/api";
-import { Search, LayoutDashboard, Send, Star, LogOut, ChevronRight, User } from "lucide-react";
-
+import AppShell from "../components/AppShell";
+import { Badge, Button, Card, EmptyState, LoadingState, PageHeader } from "../components/ui";
+import { Briefcase, ChevronRight, MessageSquare, Search, Send, Star, UserRoundCheck, WalletCards } from "lucide-react";
 
 export default function FreelancerDashboard() {
-  const { user, logout } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const [profile, setProfile] = useState(null);
+  const [bids, setBids] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [contracts, setContracts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchDashboard = async () => {
       try {
-        const res = await api.get("/auth/me/profile/");
-        setProfile(res.data);
+        const [profileRes, bidsRes, jobsRes, contractsRes] = await Promise.all([
+          api.get("/auth/me/profile/"),
+          api.get("/bids/"),
+          api.get("/jobs/"),
+          api.get("/contracts/"),
+        ]);
+        setProfile(profileRes.data);
+        setBids(bidsRes.data.results || bidsRes.data);
+        setJobs((jobsRes.data.results || jobsRes.data).filter((job) => job.status === "OPEN"));
+        setContracts(contractsRes.data.results || contractsRes.data);
       } catch (e) {
         console.error(e);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchProfile();
+    fetchDashboard();
   }, []);
 
+  const activeProposals = bids.filter((bid) => bid.status === "PENDING").length;
+  const activeJobs = contracts.filter((contract) => contract.status === "ACTIVE").length;
+  const recommendedJobs = jobs.slice(0, 4);
+
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar navigation mocked */}
-      <aside className="w-64 glass-dark hidden md:flex flex-col">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-white tracking-tight">Dealancer</h2>
-          <p className="text-slate-400 text-sm mt-1">Freelancer Portal</p>
-        </div>
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-          <Link to="/freelancer/dashboard" className="flex items-center gap-3 px-4 py-3 bg-white/10 text-white rounded-xl font-medium">
-            <LayoutDashboard className="w-5 h-5"/> Dashboard
-          </Link>
-          <Link to="/jobs" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-colors">
-            <Search className="w-5 h-5"/> Find Jobs
-          </Link>
-          <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-white rounded-xl font-medium transition-colors">
-            <User className="w-5 h-5"/> My Profile
-          </Link>
-        </nav>
+    <AppShell title="Freelancer Dashboard" subtitle="Browse work, manage proposals, and track contracts.">
+      <PageHeader
+        title={`Welcome back, ${user?.first_name || "there"}`}
+        description={profile?.bio ? `${profile.bio.substring(0, 90)}${profile.bio.length > 90 ? "..." : ""}` : "Complete your profile to help clients trust your expertise."}
+        actions={<Link to="/jobs"><Button icon={Search}>Browse jobs</Button></Link>}
+      />
 
-        <div className="p-4">
-          <button onClick={logout} className="w-full flex items-center justify-center gap-2 px-4 py-2 text-slate-300 hover:text-white hover:bg-red-500/20 rounded-xl transition-colors">
-            <LogOut className="w-4 h-4"/> Sign Out
-          </button>
-        </div>
-      </aside>
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard icon={Send} label="Active proposals" value={loading ? "..." : activeProposals} tone="amber" />
+        <StatCard icon={Briefcase} label="Active jobs" value={loading ? "..." : activeJobs} tone="emerald" />
+        <StatCard icon={Star} label="Rating" value={profile?.avg_rating || "0.00"} tone="yellow" />
+      </div>
 
-      <main className="flex-1 p-8">
-        <header className="flex justify-between items-end mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900">Welcome back, {user?.first_name}</h1>
-            <p className="text-slate-500 mt-1">{profile?.bio ? (profile.bio.substring(0, 50) + "...") : "Complete your profile to attract more clients!"}</p>
+      <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_360px]">
+        <Card>
+          <div className="flex items-center justify-between border-b border-slate-100 p-6">
+            <div>
+              <h2 className="text-xl font-black text-slate-950">Recommended jobs</h2>
+              <p className="mt-1 text-sm text-slate-500">Open projects matched from the current marketplace.</p>
+            </div>
+            <Link to="/jobs" className="text-sm font-bold text-cyan-700 hover:text-cyan-900">View all</Link>
           </div>
-          <Link to="/jobs" className="hidden sm:flex bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-md items-center gap-2">
-            <Search className="w-5 h-5"/> Browse Jobs
-          </Link>
-        </header>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-             <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600">
-               <Send />
-             </div>
-             <div>
-               <p className="text-sm text-slate-500 font-medium">Active Proposals</p>
-               <p className="text-2xl font-bold text-slate-900">7</p>
-             </div>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-             <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600">
-               <span className="font-bold text-lg">$</span>
-             </div>
-             <div>
-               <p className="text-sm text-slate-500 font-medium">Earnings (Mock)</p>
-               <p className="text-2xl font-bold text-slate-900">$2,450</p>
-             </div>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
-             <div className="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center text-yellow-600">
-               <Star />
-             </div>
-             <div>
-               <p className="text-sm text-slate-500 font-medium">My Rating</p>
-               <p className="text-2xl font-bold text-slate-900">{profile?.avg_rating || "0.00"}</p>
-             </div>
-          </div>
-        </div>
-
-        <section className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-900">Recommended Jobs</h2>
-            <Link to="/jobs" className="text-sm text-primary font-medium hover:text-primary-dark">View All</Link>
-          </div>
-          <div className="divide-y divide-slate-50">
-            {/* Mocked recommendations */}
-            {[1, 2].map((i) => (
-              <div key={i} className="p-6 hover:bg-slate-50/50 transition-colors flex flex-col sm:flex-row sm:justify-between sm:items-center cursor-pointer group">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900 group-hover:text-primary transition-colors">Looking for Django REST API Expert</h3>
-                  <div className="flex gap-4 mt-2 text-sm text-slate-500">
-                    <span>Budget: $500 - $1,000</span>
-                    <span>•</span>
-                    <span>Backend Development</span>
+          {loading ? (
+            <div className="p-6"><LoadingState label="Loading recommended jobs..." /></div>
+          ) : recommendedJobs.length > 0 ? (
+            <div className="divide-y divide-slate-100">
+              {recommendedJobs.map((job) => (
+                <Link key={job.id} to={`/jobs/${job.id}`} className="flex items-center justify-between gap-4 p-6 transition hover:bg-slate-50">
+                  <div>
+                    <h3 className="font-bold text-slate-950">{job.title}</h3>
+                    <div className="mt-2 flex flex-wrap gap-2 text-sm text-slate-500">
+                      <span>${job.budget_min} - ${job.budget_max}</span>
+                      <Badge variant="primary">{job.categories?.[0]?.name || "General"}</Badge>
+                    </div>
                   </div>
-                </div>
-                <button className="mt-4 sm:mt-0 text-primary font-medium flex items-center gap-1 group-hover:underline">
-                  Submit Proposal <ChevronRight size={16}/>
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
+                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6">
+              <EmptyState title="No open jobs right now" description="New work will appear here as clients post jobs." />
+            </div>
+          )}
+        </Card>
 
-      </main>
+        <div className="space-y-6">
+          <Card className="p-6">
+            <h2 className="text-lg font-black text-slate-950">Portfolio highlights</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Showcase case studies, featured reviews, and availability in a future profile upgrade.</p>
+            <div className="mt-5 space-y-3">
+              <DemoItem icon={UserRoundCheck} title="Profile strength" text="Categories, skills, bio, rate, portfolio." />
+              <DemoItem icon={MessageSquare} title="Messages" text="Client communication placeholder." />
+              <DemoItem icon={WalletCards} title="Earnings" text="Future payments and invoices." />
+            </div>
+          </Card>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, tone }) {
+  const tones = {
+    amber: "bg-amber-50 text-amber-700",
+    emerald: "bg-emerald-50 text-emerald-700",
+    yellow: "bg-yellow-50 text-yellow-700",
+  };
+  return (
+    <Card className="p-6 transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/70">
+      <div className="flex items-center gap-4">
+        <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${tones[tone]}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-slate-500">{label}</p>
+          <p className="text-3xl font-black text-slate-950">{value}</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function DemoItem({ icon: Icon, title, text }) {
+  return (
+    <div className="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-cyan-700" />
+      <div>
+        <p className="text-sm font-bold text-slate-900">{title}</p>
+        <p className="text-xs leading-5 text-slate-500">{text}</p>
+      </div>
     </div>
   );
 }

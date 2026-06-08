@@ -144,6 +144,8 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+import dj_database_url
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -154,6 +156,12 @@ DATABASES = {
         'PORT': '5432',                    # Default Postgres port
     }
 }
+
+# Override with DATABASE_URL environment variable if provided
+if env('DATABASE_URL', default=None):
+    DATABASES['default'] = dj_database_url.config(
+        default=env('DATABASE_URL')
+    )
 
 
 # Password validation

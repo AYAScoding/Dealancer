@@ -1,71 +1,60 @@
 # Dealancer 🚀
-A modern, secure, and scalable freelancing marketplace built with Django and (upcoming) React.
 
-## 📌 Project Overview
-Dealancer is designed to connect talented freelancers with clients looking for high-quality work. The platform focuses on a seamless experience for project bidding, secure payments, and professional profile management.
+## Acknowledgement
+We would like to thank all contributors, mentors, and the open‑source community whose feedback and support have been instrumental in shaping **Dealancer**. Special thanks to the project lead and the development team for their dedication.
 
----
+## Abstract
+Dealancer is a modern, secure, and scalable freelancing marketplace that connects talented freelancers with clients seeking high‑quality work. Built on Django Rest Framework (DRF) with JWT authentication and PostgreSQL, the platform offers role‑based access, profile management, and a roadmap toward a full‑stack solution including a React/Next.js frontend.
 
-## 🛠️ Tech Stack (Current)
-- **Backend:** Django Rest Framework (DRF)
-- **Authentication:** JWT (SimpleJWT)
-- **Database:** PostgreSQL (Development & Production)
-- **Documentation:** drf-spectacular (OpenAPI 3.0)
-- **Environment:** Python 3.x, Virtualenv
+## 1. Introduction
+The goal of Dealancer is to provide a seamless experience for project bidding, secure payments, and professional profile management. The backend implements robust authentication, role separation (CLIENT vs FREELANCER), and extensible skill management. The roadmap outlines planned features such as job postings, bidding, messaging, contracts, ratings, and payment integration.
 
----
+## 2. Methodology
+- **Agile Development**: Incremental feature delivery with defined phases.
+- **Backend‑First Approach**: API‑first design using Django Rest Framework and OpenAPI specifications.
+- **Test‑Driven**: Core authentication and profile logic verified via unit tests.
+- **Continuous Documentation**: Auto‑generated Swagger / Redoc docs for all endpoints.
+- **Version Control**: Git repository with clear issue tracking and milestones.
 
-## ✅ Progress So Far (Done)
-Here is what has been implemented and is currently functional in the backend:
+## 3. Hardware and Software Requirements
+- **Operating System**: Windows 10/11 (development), Linux/WSL for production.
+- **Python**: 3.x (virtual environment recommended).
+- **Frameworks**: Django 4.x, Django Rest Framework, SimpleJWT.
+- **Database**: PostgreSQL (development & production).
+- **Other Tools**: Git, pip, virtualenv, drf‑spectacular for API docs.
+- **Frontend (planned)**: Node.js, React or Next.js, npm/yarn.
 
-### 1. **Core Authentication & User Management**
-- **Custom User Model:** Using email as the primary login identifier instead of username.
-- **JWT Authentication:** Secure token-based auth with access/refresh cycles and token blacklisting.
-- **Role-Based Access Control:** Distinct roles for `CLIENT` and `FREELANCER`.
-- **Profiles:** Automated creation of specialized profiles (Freelancer/Client) upon user registration.
+## 4. Project Management Plan and Completed Activities and Achievements
+### Completed Activities
+- Custom user model with email login.
+- JWT authentication with token blacklisting.
+- Role‑based permissions (`IsFreelancer`, `IsClient`).
+- Automated profile creation via signals.
+- Skill system with hierarchical categories.
+- API documentation (Swagger & Redoc).
+- Development setup instructions and environment configuration.
 
-### 2. **Profile & Professional Data**
-- **Freelancer Profiles:** Bio, hourly rates, availability tracking, and average ratings.
-- **Client Profiles:** Company details, industry, and website tracking.
-- **Skill System:** Hierarchical skill categories and a many-to-many relationship between freelancers and their skills.
+### Roadmap (Planned Phases)
+**Phase 1 – Job Marketplace**
+- Job postings, bidding system, search & filters.
 
-### 3. **Infrastructure**
-- **Permissions:** Custom permission classes (e.g., `IsFreelancer`, `IsClient`) to protect sensitive endpoints.
-- **API Documentation:** Automatic generation of Swagger and ReDoc documentation for all API endpoints.
-- **Signals:** Django signals to automate profile creation and data integrity.
+**Phase 2 – Communication & Contracts**
+- Real‑time messaging, contract management, notifications.
 
----
+**Phase 3 – Feedback & Payments**
+- Review & rating system, Stripe/PayPal integration, financial dashboards.
 
-## 🚀 What's Next? (Roadmap)
-To build a fully functional marketplace, the following features are planned:
+**Phase 4 – Frontend Development**
+- Initialize React/Next.js app, role‑specific dashboards, responsive UI.
 
-### **Phase 1: Job Marketplace (Highest Priority)**
-- [ ] **Job Postings:** Clients should be able to create, edit, and delete project listings with categories and budget settings.
-- [ ] **Bidding/Proposal System:** Freelancers to apply for jobs with custom proposals, cost estimates, and duration.
-- [ ] **Job Search:** Filtering and searching projects by skill, budget, and date.
+## 5. Conclusion
+Dealancer demonstrates a solid backend foundation for a freelance marketplace, with clear progress and a well‑defined roadmap. The upcoming phases will expand functionality to a full‑stack solution, delivering a complete end‑to‑end experience for freelancers and clients.
 
-### **Phase 2: Communication & Contracts**
-- [ ] **Messaging System:** Real-time chat (WebSockets/Django Channels) or simple message-based communication between parties.
-- [ ] **Contract Management:** A system to "Hire" a freelancer, creating an active contract with milestones.
-- [ ] **Notifications:** Email and in-app alerts for new bids, messages, or project updates.
-
-### **Phase 3: Feedback & Payments**
-- [ ] **Review & Rating System:** Logic to calculate and store ratings after a project is marked as "Completed."
-- [ ] **Payment Integration:** Integrating Stripe or PayPal for secure project funding and escrow.
-- [ ] **Financial Dashboard:** Tracking earnings for freelancers and spending for clients.
-
-### **Phase 4: Frontend Development**
-- [ ] **Initialize Frontend:** Setup a modern React or Next.js application in the `/Frontend` directory.
-- [ ] **Client/Freelancer Dashboards:** Tailored UI experiences based on the user's role.
-- [ ] **Responsive Design:** Ensuring the platform works perfectly on mobile and desktop.
-
----
-
-## ⚙️ Development Setup (Backend)
-1. Navigate to `/Backend/core`.
-2. Create and activate a virtual environment.
-3. Install dependencies: `pip install -r requirements.txt` (Make sure to generate one if missing).
-4. Run migrations: `python manage.py migrate`.
-5. Start the server: `python manage.py runserver`.
-6. Access API docs at `/api/schema/swagger-ui/`.
-
+## 6. References
+- Django Documentation: https://docs.djangoproject.com/
+- Django Rest Framework: https://www.django-rest-framework.org/
+- SimpleJWT: https://django-rest-framework-simplejwt.readthedocs.io/
+- drf‑spectacular (OpenAPI): https://drf-spectacular.readthedocs.io/
+- PostgreSQL: https://www.postgresql.org/
+- React: https://reactjs.org/
+- Next.js: https://nextjs.org/

@@ -1,4 +1,3 @@
-import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -11,11 +10,13 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import ClientDashboard from "./pages/ClientDashboard";
+import ClientJobs from "./pages/ClientJobs";
 import FreelancerDashboard from "./pages/FreelancerDashboard";
 import JobMarketplace from "./pages/JobMarketplace";
 import JobDetail from "./pages/JobDetail";
 import JobForm from "./pages/JobForm";
 import Profile from "./pages/Profile";
+import Contracts from "./pages/Contracts";
 
 function App() {
 
@@ -35,6 +36,8 @@ function App() {
           <Route element={<ProtectedRoute allowedRoles={["CLIENT"]} />}>
             <Route path="/client/dashboard" element={<ClientDashboard />} />
             <Route path="/client/jobs/new" element={<JobForm />} />
+            <Route path="/client/jobs" element={<ClientJobs />} />
+            <Route path="/client/jobs/:id" element={<JobDetail />} />
           </Route>
 
           {/* Freelancer Only Routes */}
@@ -47,6 +50,7 @@ function App() {
           {/* Shared Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<Profile />} />
+            <Route path="/contracts" element={<Contracts />} />
           </Route>
 
 

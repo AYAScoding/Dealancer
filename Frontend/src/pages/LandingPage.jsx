@@ -1,70 +1,88 @@
-import React from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, Users, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { BarChart3, Briefcase, CheckCircle, MessageSquare, ShieldCheck, Star, Users } from "lucide-react";
+import heroImage from "../assets/hero.png";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-slate-50 overflow-hidden flex flex-col">
-      {/* Navbar */}
-      <nav className="glass fixed top-0 w-full z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex-shrink-0 flex items-center gap-2">
-              <Briefcase className="h-8 w-8 text-primary" />
-              <span className="font-bold text-2xl tracking-tight text-slate-900">
-                Dealancer
-              </span>
+    <div className="min-h-screen bg-slate-50 text-slate-950">
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-white/20 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-cyan-300">
+              <Briefcase className="h-5 w-5" />
             </div>
-            <div className="flex items-center space-x-4">
-              <Link to="/login" className="text-slate-600 hover:text-primary font-medium">Log in</Link>
-              <Link to="/register" className="bg-primary hover:bg-primary-dark text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-md hover:shadow-lg">
-                Sign up
-              </Link>
-            </div>
+            <span className="text-xl font-black tracking-tight">Dealancer</span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/login" className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950">
+              Log in
+            </Link>
+            <Link to="/register" className="rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+              Sign up
+            </Link>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <main className="flex-grow pt-32 pb-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 blur-[120px] rounded-full pointer-events-none -z-10"></div>
-        <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-secondary/20 blur-[100px] rounded-full pointer-events-none -z-10"></div>
-        
-        <div className="max-w-4xl max-auto text-center z-10 space-y-10">
-          <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            The next generation <br className="hidden md:block"/> 
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">freelance marketplace</span>
-          </h1>
-          <p className="mt-4 text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            Connect with elite talent and visionary clients seamlessly. Secure, powerful, and built for modern professionals.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
-            <Link to="/register?role=FREELANCER" className="glass py-4 px-8 rounded-xl font-semibold text-lg hover:bg-white/90 transform hover:scale-105 transition-all text-primary flex items-center justify-center gap-2">
-              <Users className="w-5 h-5"/> Find Work
-            </Link>
-            <Link to="/register?role=CLIENT" className="bg-slate-900 text-white py-4 px-8 rounded-xl font-semibold shadow-2xl hover:bg-slate-800 text-lg transform hover:scale-105 transition-all flex items-center justify-center gap-2">
-              <LayoutDashboard className="w-5 h-5"/> Post a Job
-            </Link>
-          </div>
+      <main>
+        <section className="relative min-h-[92vh] overflow-hidden pt-16">
+          <img src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover opacity-20" />
+          <div className="absolute inset-0 bg-slate-950/80" />
+          <div className="relative mx-auto flex min-h-[92vh] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6 lg:px-8">
+            <div className="max-w-3xl animate-in">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-sm font-semibold text-cyan-100">
+                <ShieldCheck className="h-4 w-4" />
+                Trusted work marketplace demo
+              </div>
+              <h1 className="text-5xl font-black leading-tight tracking-tight text-white md:text-7xl">
+                Dealancer
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-200 md:text-xl">
+                A focused freelance marketplace where clients post clear work, freelancers submit proposals, and both sides manage active contracts with confidence.
+              </p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Link to="/register?role=CLIENT" className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-6 py-3 text-sm font-black text-slate-950 shadow-lg shadow-cyan-950/20 transition hover:bg-cyan-200 hover:-translate-y-0.5">
+                  <Briefcase className="h-4 w-4" /> Hire talent
+                </Link>
+                <Link to="/register?role=FREELANCER" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-6 py-3 text-sm font-black text-white transition hover:bg-white/15 hover:-translate-y-0.5">
+                  <Users className="h-4 w-4" /> Find work
+                </Link>
+              </div>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 text-left">
-             <div className="glass p-6 rounded-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Briefcase size={80}/></div>
-               <h3 className="text-xl font-bold text-slate-900 mb-2">Verified Projects</h3>
-               <p className="text-slate-600">Access thousands of high-quality, verified job postings across multiple industries.</p>
-             </div>
-             <div className="glass p-6 rounded-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><ShieldCheck size={80}/></div>
-               <h3 className="text-xl font-bold text-slate-900 mb-2">Secure Payments</h3>
-               <p className="text-slate-600">Your funds are protected with industry-leading escrow and milestone tracking features.</p>
-             </div>
-             <div className="glass p-6 rounded-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Users size={80}/></div>
-               <h3 className="text-xl font-bold text-slate-900 mb-2">Global Network</h3>
-               <p className="text-slate-600">Hire professionals worldwide and scale your business operations effortlessly.</p>
-             </div>
+            <div className="mt-14 grid gap-4 sm:grid-cols-3">
+              {[
+                ["Active contracts", "Track delivery from hire to completion."],
+                ["Proposal workflow", "Review bids and hire from one place."],
+                ["Profile readiness", "Keep marketplace interactions trustworthy."],
+              ].map(([title, text]) => (
+                <div key={title} className="rounded-2xl border border-white/10 bg-white/10 p-5 backdrop-blur">
+                  <p className="font-bold text-white">{title}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-300">{text}</p>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+            {[
+              [MessageSquare, "Messages", "Static preview for client-freelancer chat."],
+              [BarChart3, "Analytics", "Pipeline, proposal, and contract insight placeholders."],
+              [Star, "Reviews", "Ratings surface for future completed contracts."],
+              [CheckCircle, "Saved talent", "Shortlist freelancers for later hiring."],
+            ].map(([Icon, title, text]) => (
+              <div key={title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-200/70">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-50 text-cyan-700">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <h2 className="font-bold text-slate-950">{title}</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">{text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
       </main>
     </div>
   );

@@ -1,20 +1,22 @@
-import React, { useState, useContext } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useContext, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { LogIn, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { ArrowLeft, Briefcase, Eye, EyeOff, LogIn, ShieldCheck } from "lucide-react";
+import { Alert, Button, Card, TextInput } from "../components/ui";
 
 export default function Login() {
-  const { login } = useContext(AuthContext);
+  const { login, confirm2fa } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Read the success flag passed from ResetPassword after a successful reset
   const passwordResetSuccess = location.state?.passwordResetSuccess;
 
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState("credentials");
+  const [ephemeralToken, setEphemeralToken] = useState("");
+  const [otpCode, setOtpCode] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,118 +24,167 @@ export default function Login() {
     setIsLoading(true);
 
     const result = await login(formData.email, formData.password);
-
     if (result.success) {
-      // Role-based redirect: CLIENT → client dashboard, FREELANCER → freelancer dashboard
-      const role = result.user?.role;
-      if (role === "CLIENT") {
-        navigate("/client/dashboard");
-      } else {
-        navigate("/freelancer/dashboard");
-      }
+      navigate(result.user?.role === "CLIENT" ? "/client/dashboard" : "/freelancer/dashboard");
+    } else if (result.requires2fa) {
+      setEphemeralToken(result.ephemeralToken);
+      setStep("otp");
     } else {
       setError(result.message);
     }
     setIsLoading(false);
   };
 
+  const handle2faSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    const result = await confirm2fa(ephemeralToken, otpCode);
+    if (result.success) {
+      navigate(result.user?.role === "CLIENT" ? "/client/dashboard" : "/freelancer/dashboard");
+    } else if (result.expired) {
+      setError("Session expired. Please sign in again.");
+      setStep("credentials");
+      setEphemeralToken("");
+      setOtpCode("");
+    } else {
+      setError(result.message);
+    }
+    setIsLoading(false);
+  };
+
+  const backToCredentials = () => {
+    setStep("credentials");
+    setEphemeralToken("");
+    setOtpCode("");
+    setError("");
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative z-10 overflow-hidden">
-      <div className="absolute top-1/4 left-0 w-96 h-96 bg-primary/20 blur-[100px] rounded-full pointer-events-none -z-10" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary/20 blur-[100px] rounded-full pointer-events-none -z-10" />
+    <AuthFrame title="Welcome back" subtitle="Sign in to manage proposals, contracts, and marketplace work.">
+      <Card className="p-6 sm:p-8">
+        {step === "credentials" ? (
+        <form className="space-y-5 animate-in" onSubmit={handleSubmit}>
+          {passwordResetSuccess && <Alert variant="success">Password reset successfully. Sign in with your new password.</Alert>}
+          {error && <Alert variant="error">{error}</Alert>}
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 flex justify-center items-center gap-2">
-          <LogIn className="text-primary" /> Sign in to Dealancer
-        </h2>
-        <p className="mt-2 text-center text-sm text-slate-600">
-          Or{" "}
-          <Link to="/register" className="font-medium text-primary hover:text-primary-dark">
-            create a new account
-          </Link>
-        </p>
-      </div>
+          <div>
+            <label htmlFor="login-email" className="text-sm font-semibold text-slate-700">Email address</label>
+            <TextInput
+              id="login-email"
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="mt-2"
+            />
+          </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="glass py-8 px-4 sm:rounded-2xl sm:px-10">
-          <form className="space-y-5" onSubmit={handleSubmit}>
-
-            {/* Post-reset success banner */}
-            {passwordResetSuccess && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 shrink-0" />
-                Password reset successfully! Sign in with your new password.
-              </div>
-            )}
-
-            {/* Error banner */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
-                {error}
-              </div>
-            )}
-
-            {/* Email */}
-            <div>
-              <label htmlFor="login-email" className="block text-sm font-medium text-slate-700">
-                Email address
-              </label>
-              <div className="mt-1">
-                <input
-                  id="login-email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="appearance-none block w-full px-3 py-3 border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm bg-white/50 backdrop-blur-sm"
-                />
-              </div>
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <label htmlFor="login-password" className="text-sm font-semibold text-slate-700">Password</label>
+              <Link to="/forgot-password" className="text-xs font-bold text-cyan-700 hover:text-cyan-900">
+                Forgot password?
+              </Link>
             </div>
-
-            {/* Password with toggle and forgot link */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label htmlFor="login-password" className="block text-sm font-medium text-slate-700">
-                  Password
-                </label>
-                <Link
-                  to="/forgot-password"
-                  className="text-xs font-medium text-primary hover:text-primary-dark transition-colors"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative mt-1">
-                <input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="appearance-none block w-full px-3 py-3 pr-12 border border-slate-300 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm bg-white/50 backdrop-blur-sm"
-                />
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-700 focus:outline-none"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Submit */}
-            <div className="pt-1">
+            <div className="relative">
+              <TextInput
+                id="login-password"
+                type={showPassword ? "text" : "password"}
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="pr-12"
+              />
               <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 transition-colors"
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-700"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {isLoading ? "Signing in..." : "Sign in"}
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
+          </div>
+
+          <Button type="submit" disabled={isLoading} icon={LogIn} className="w-full">
+            {isLoading ? "Signing in..." : "Sign in"}
+          </Button>
+        </form>
+        ) : (
+          <form className="space-y-6 animate-in" onSubmit={handle2faSubmit}>
+            {error && <Alert variant="error">{error}</Alert>}
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700">
+                <ShieldCheck className="h-7 w-7" />
+              </div>
+              <h2 className="text-2xl font-black text-slate-950">Two-factor verification</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Enter the 6-digit code from Google Authenticator.
+              </p>
+            </div>
+            <TextInput
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className="text-center font-mono text-3xl tracking-[0.35em]"
+              placeholder="000000"
+              required
+            />
+            <Button type="submit" disabled={isLoading || otpCode.length !== 6} icon={ShieldCheck} className="w-full">
+              {isLoading ? "Verifying..." : "Verify code"}
+            </Button>
+            <button
+              type="button"
+              onClick={backToCredentials}
+              className="mx-auto flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-slate-950"
+            >
+              <ArrowLeft className="h-4 w-4" /> Back to sign in
+            </button>
           </form>
+        )}
+
+        <p className="mt-6 text-center text-sm text-slate-500">
+          New to Dealancer?{" "}
+          <Link to="/register" className="font-bold text-cyan-700 hover:text-cyan-900">Create an account</Link>
+        </p>
+      </Card>
+    </AuthFrame>
+  );
+}
+
+function AuthFrame({ title, subtitle, children }) {
+  return (
+    <div className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto grid min-h-[calc(100vh-5rem)] max-w-6xl items-center gap-10 lg:grid-cols-[1fr_440px]">
+        <div className="hidden lg:block">
+          <Link to="/" className="mb-10 inline-flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-cyan-300">
+              <Briefcase className="h-5 w-5" />
+            </div>
+            <span className="text-2xl font-black">Dealancer</span>
+          </Link>
+          <h1 className="max-w-xl text-5xl font-black leading-tight tracking-tight text-slate-950">{title}</h1>
+          <p className="mt-5 max-w-lg text-lg leading-8 text-slate-600">{subtitle}</p>
+          <div className="mt-8 grid max-w-xl grid-cols-3 gap-3">
+            {["Verified profiles", "Proposal workflow", "Active contracts"].map((item) => (
+              <div key={item} className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-700 shadow-sm">
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mx-auto w-full max-w-md">
+          <div className="mb-7 text-center lg:hidden">
+            <Link to="/" className="inline-flex items-center gap-3">
+              <Briefcase className="h-7 w-7 text-cyan-700" />
+              <span className="text-2xl font-black">Dealancer</span>
+            </Link>
+          </div>
+          {children}
         </div>
       </div>
     </div>

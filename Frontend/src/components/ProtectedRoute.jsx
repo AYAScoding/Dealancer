@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import { useContext } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
@@ -23,9 +23,10 @@ const ProtectedRoute = ({ allowedRoles }) => {
     return <Navigate to="/profile" replace state={{ from: location, mustComplete: true }} />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  const userRole = user && user.role ? user.role.toUpperCase() : "";
+  if (allowedRoles && !allowedRoles.map(r => r.toUpperCase()).includes(userRole)) {
     // If user's role isn't allowed, send them to their respective dashboard
-    const redirectPath = user.role === "FREELANCER" ? "/freelancer/dashboard" : "/client/dashboard";
+    const redirectPath = userRole === "FREELANCER" ? "/freelancer/dashboard" : "/client/dashboard";
     return <Navigate to={redirectPath} replace />;
   }
 
