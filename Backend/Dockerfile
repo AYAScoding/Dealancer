@@ -18,5 +18,5 @@ WORKDIR /app/core
 ENV PORT=8000
 EXPOSE $PORT
 
-# Start the server using the PORT variable
-CMD python manage.py runserver 0.0.0.0:$PORT
+# Start the server using the PORT variable. Runs migrations automatically first.
+CMD sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:$PORT"
