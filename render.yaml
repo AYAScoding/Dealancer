@@ -19,6 +19,8 @@ services:
     plan: free
     dockerContext: ./Frontend
     dockerfilePath: ./Frontend/Dockerfile
+    dockerBuildArgs:
+      - VITE_BACKEND_URL=https://dealancer-backend.onrender.com/api
     envVars:
       - key: VITE_BACKEND_URL
         value: "https://dealancer-backend.onrender.com/api"
