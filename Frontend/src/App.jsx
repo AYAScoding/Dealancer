@@ -1,7 +1,14 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  Link,
+  Outlet,
+} from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AppShell from "./components/AppShell";
 
 // Page Imports
 import LandingPage from "./pages/LandingPage";
@@ -18,37 +25,65 @@ import JobForm from "./pages/JobForm";
 import Profile from "./pages/Profile";
 
 function App() {
-
   return (
     <Router>
       <AuthProvider>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/verify-email/:uid/:token" element={<VerifyEmail />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route
+            element={
+              <div className="legacy-page">
+                <Link className="auth-home" to="/">
+                  Dealancer
+                </Link>
+                <Outlet />
+              </div>
+            }
+          >
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/verify-email/:uid/:token" element={<VerifyEmail />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+          </Route>
 
           {/* Client Only Routes */}
-          <Route element={<ProtectedRoute allowedRoles={["CLIENT"]} />}>
-            <Route path="/client/dashboard" element={<ClientDashboard />} />
-            <Route path="/client/jobs/new" element={<JobForm />} />
-          </Route>
+          <Route element={<AppShell />}>
+            <Route element={<ProtectedRoute allowedRoles={["CLIENT"]} />}>
+              <Route path="/client/dashboard" element={<ClientDashboard />} />
+              <Route
+                path="/client/jobs/new"
+                element={
+                  <div className="legacy-page">
+                    <JobForm />
+                  </div>
+                }
+              />
+            </Route>
 
-          {/* Freelancer Only Routes */}
-          <Route element={<ProtectedRoute allowedRoles={["FREELANCER"]} />}>
-            <Route path="/freelancer/dashboard" element={<FreelancerDashboard />} />
-            <Route path="/jobs" element={<JobMarketplace />} />
-            <Route path="/jobs/:id" element={<JobDetail />} />
-          </Route>
+            {/* Freelancer Only Routes */}
+            <Route element={<ProtectedRoute allowedRoles={["FREELANCER"]} />}>
+              <Route
+                path="/freelancer/dashboard"
+                element={<FreelancerDashboard />}
+              />
+              <Route path="/jobs" element={<JobMarketplace />} />
+            </Route>
 
-          {/* Shared Protected Routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/profile" element={<Profile />} />
+            {/* Shared Protected Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route
+                path="/profile"
+                element={
+                  <div className="legacy-page">
+                    <Profile />
+                  </div>
+                }
+              />
+              <Route path="/jobs/:id" element={<JobDetail />} />
+            </Route>
           </Route>
-
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

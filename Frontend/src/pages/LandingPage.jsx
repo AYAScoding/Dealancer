@@ -1,71 +1,170 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import { Briefcase, Users, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { useContext, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  ArrowUpRight,
+  Code2,
+  PenTool,
+  Search,
+  BarChart3,
+  PencilRuler,
+} from "lucide-react";
+import { AuthContext } from "../context/AuthContext";
+
+const disciplines = [
+  {
+    icon: Code2,
+    title: "Development",
+    description: "Websites, applications, and the systems behind them.",
+  },
+  {
+    icon: PencilRuler,
+    title: "Design & creative",
+    description: "Distinct identities and thoughtful digital experiences.",
+  },
+  {
+    icon: PenTool,
+    title: "Writing & content",
+    description: "The right words to bring a good idea into focus.",
+  },
+  {
+    icon: BarChart3,
+    title: "Business & marketing",
+    description: "Fresh thinking to help your next project grow.",
+  },
+];
 
 export default function LandingPage() {
+  const { user } = useContext(AuthContext);
+  const [query, setQuery] = useState("");
+  const navigate = useNavigate();
+  const home =
+    user?.role === "CLIENT" ? "/client/dashboard" : "/freelancer/dashboard";
+  function search(event) {
+    event.preventDefault();
+    navigate(
+      user
+        ? user.role === "CLIENT"
+          ? "/client/jobs/new"
+          : `/jobs?q=${encodeURIComponent(query)}`
+        : `/login?next=${encodeURIComponent(`/jobs?q=${encodeURIComponent(query)}`)}`,
+    );
+  }
   return (
-    <div className="min-h-screen bg-slate-50 overflow-hidden flex flex-col">
-      {/* Navbar */}
-      <nav className="glass fixed top-0 w-full z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex-shrink-0 flex items-center gap-2">
-              <Briefcase className="h-8 w-8 text-primary" />
-              <span className="font-bold text-2xl tracking-tight text-slate-900">
-                Dealancer
-              </span>
+    <div className="public-page">
+      <header className="public-nav">
+        <Link to="/" className="wordmark">
+          <span className="brand-symbol" />
+          Dealancer
+        </Link>
+        <nav aria-label="Public navigation">
+          <a className="nav-extra" href="#expertise">
+            Explore expertise
+          </a>
+          <Link className={user ? "nav-extra" : ""} to={user ? home : "/login"}>
+            {user ? "My workspace" : "Log in"}
+          </Link>
+          <Link
+            className="button button-primary"
+            to={user ? home : "/register"}
+          >
+            {user ? "Open workspace" : "Get started"}
+            <ArrowUpRight size={16} />
+          </Link>
+        </nav>
+      </header>
+      <main>
+        <section className="hero">
+          <img
+            src="/workspace.jpg"
+            alt="A bright shared workspace with glass-walled meeting rooms"
+            fetchPriority="high"
+          />
+          <div className="hero-content">
+            <div className="hero-label">
+              <span className="status-dot" />
+              Independent talent. Shared ambition.
             </div>
-            <div className="flex items-center space-x-4">
-              <Link to="/login" className="text-slate-600 hover:text-primary font-medium">Log in</Link>
-              <Link to="/register" className="bg-primary hover:bg-primary-dark text-white px-5 py-2 rounded-lg font-medium transition-colors shadow-md hover:shadow-lg">
-                Sign up
+            <h1>Dealancer</h1>
+            <h2>
+              Good work starts
+              <br />
+              with the right connection.
+            </h2>
+            <p>
+              A place for people with ideas and people with the skills to bring
+              them to life.
+            </p>
+            <form className="hero-search" onSubmit={search}>
+              <Search size={20} aria-hidden="true" />
+              <input
+                aria-label="Search opportunities"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="What would you like to work on?"
+              />
+              <button className="button button-primary" type="submit">
+                Explore
+                <ArrowUpRight size={16} />
+              </button>
+            </form>
+            <div className="hero-links">
+              <Link
+                to={user?.role === "CLIENT" ? "/client/jobs/new" : "/register"}
+              >
+                I'm hiring talent <span aria-hidden="true">&#8599;</span>
+              </Link>
+              <Link to={user?.role === "FREELANCER" ? "/jobs" : "/register"}>
+                I'm looking for work <span aria-hidden="true">&#8599;</span>
               </Link>
             </div>
           </div>
+        </section>
+        <div className="expertise-band">
+          <span>Make room for your next idea.</span>
+          <strong>Development</strong>
+          <strong>Design</strong>
+          <strong>Content</strong>
+          <strong>Marketing</strong>
+          <strong>Business</strong>
         </div>
-      </nav>
-
-      {/* Hero */}
-      <main className="flex-grow pt-32 pb-16 px-4 sm:px-6 lg:px-8 flex items-center justify-center relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/20 blur-[120px] rounded-full pointer-events-none -z-10"></div>
-        <div className="absolute top-1/4 right-0 w-[400px] h-[400px] bg-secondary/20 blur-[100px] rounded-full pointer-events-none -z-10"></div>
-        
-        <div className="max-w-4xl max-auto text-center z-10 space-y-10">
-          <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight">
-            The next generation <br className="hidden md:block"/> 
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">freelance marketplace</span>
-          </h1>
-          <p className="mt-4 text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            Connect with elite talent and visionary clients seamlessly. Secure, powerful, and built for modern professionals.
+        <section className="public-section" id="expertise">
+          <p className="eyebrow">A world of expertise</p>
+          <h2>The skills your next chapter needs.</h2>
+          <p>
+            Start with a clear brief. Find a shared direction. Build something
+            worthwhile.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
-            <Link to="/register?role=FREELANCER" className="glass py-4 px-8 rounded-xl font-semibold text-lg hover:bg-white/90 transform hover:scale-105 transition-all text-primary flex items-center justify-center gap-2">
-              <Users className="w-5 h-5"/> Find Work
-            </Link>
-            <Link to="/register?role=CLIENT" className="bg-slate-900 text-white py-4 px-8 rounded-xl font-semibold shadow-2xl hover:bg-slate-800 text-lg transform hover:scale-105 transition-all flex items-center justify-center gap-2">
-              <LayoutDashboard className="w-5 h-5"/> Post a Job
-            </Link>
+          <div className="discipline-grid">
+            {disciplines.map(({ icon: Icon, title, description }) => (
+              <div className="discipline" key={title}>
+                <Icon size={25} />
+                <h3>{title}</h3>
+                <p>{description}</p>
+              </div>
+            ))}
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 text-left">
-             <div className="glass p-6 rounded-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Briefcase size={80}/></div>
-               <h3 className="text-xl font-bold text-slate-900 mb-2">Verified Projects</h3>
-               <p className="text-slate-600">Access thousands of high-quality, verified job postings across multiple industries.</p>
-             </div>
-             <div className="glass p-6 rounded-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><ShieldCheck size={80}/></div>
-               <h3 className="text-xl font-bold text-slate-900 mb-2">Secure Payments</h3>
-               <p className="text-slate-600">Your funds are protected with industry-leading escrow and milestone tracking features.</p>
-             </div>
-             <div className="glass p-6 rounded-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Users size={80}/></div>
-               <h3 className="text-xl font-bold text-slate-900 mb-2">Global Network</h3>
-               <p className="text-slate-600">Hire professionals worldwide and scale your business operations effortlessly.</p>
-             </div>
+        </section>
+        <section className="public-cta">
+          <div>
+            <h2>Your next project starts here.</h2>
+            <p>Connect through a brief, a proposal, and a shared plan.</p>
           </div>
-        </div>
+          <Link
+            className="button button-primary"
+            to={user ? home : "/register"}
+          >
+            {user ? "Go to workspace" : "Join Dealancer"}
+            <ArrowUpRight size={17} />
+          </Link>
+        </section>
       </main>
+      <footer className="public-footer">
+        <Link className="wordmark" to="/">
+          Dealancer
+        </Link>
+        <span>Independent work. Meaningful connections.</span>
+        <span>&copy; {new Date().getFullYear()} Dealancer</span>
+      </footer>
     </div>
   );
 }

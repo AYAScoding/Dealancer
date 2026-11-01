@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import { useState, useContext } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { LogIn, Eye, EyeOff, CheckCircle } from "lucide-react";
@@ -29,7 +29,8 @@ export default function Login() {
       if (role === "CLIENT") {
         navigate("/client/dashboard");
       } else {
-        navigate("/freelancer/dashboard");
+        const next = new URLSearchParams(location.search).get('next');
+        navigate(next?.startsWith('/jobs') && !next.startsWith('//') ? next : '/freelancer/dashboard');
       }
     } else {
       setError(result.message);
@@ -114,7 +115,7 @@ export default function Login() {
                 />
                 <button
                   type="button"
-                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-700 focus:outline-none"
                 >
